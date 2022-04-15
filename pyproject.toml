@@ -50,8 +50,11 @@ packages = [{ include = "osg" }]
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
-ldap3 = "^2.9"
+## Dependencies that are tied to jupyterhub/k8s-hub:0.11.1.
+python = "~3.8"
+cryptography = "~3.2"
+ldap3 = "~2.8"
+PyJWT = "~1.7"
 
 
 [tool.poetry.dev-dependencies]
