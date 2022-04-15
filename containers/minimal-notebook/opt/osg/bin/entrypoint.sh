@@ -1,5 +1,5 @@
 #!/bin/sh
-# Wait for sssd to create its sockets before starting JupyterLab.
+# Wait for sssd to create its sockets.
 
 set -eu
 
@@ -11,4 +11,4 @@ do
   sleep 2
 done
 
-exec jupyter-labhub
+exec "$@"

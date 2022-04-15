@@ -2,10 +2,6 @@
 
 FROM htcondor/htc-minimal-notebook:latest
 
-## Stop the HTC notebook from starting its local/private pool.
-
-ENV _condor_SCHEDD_HOST ""
-
 # In order to accommodate the sharing of sssd's "pipes" directory, we
 # create the sssd user and group with explicit IDs rather than allowing
 # packages to select arbitrary IDs.
@@ -25,6 +21,4 @@ COPY opt /opt/
 
 USER jovyan
 
-## Start the notebook server.
-
-CMD /opt/osg/bin/start-notebook.sh
+ENTRYPOINT ["tini", "-g", "--", "/opt/osg/bin/entrypoint.sh"]
