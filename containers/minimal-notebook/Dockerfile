@@ -1,4 +1,8 @@
-## Minimal JupyterLab with support for sssd and HTCondor.
+# Minimal JupyterLab with support for sssd and HTCondor.
+#
+# The intent is that /var/lib/sss/pipes will be shared with some other
+# container that is running an sssd daemon. The notebook container should
+# not include configuration for sssd.
 
 FROM htcondor/htc-minimal-notebook:latest
 
