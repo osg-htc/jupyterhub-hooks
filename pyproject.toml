@@ -50,11 +50,13 @@ packages = [{ include = "osg" }]
 
 
 [tool.poetry.dependencies]
-## Dependencies that are tied to jupyterhub/k8s-hub:0.11.1.
+## These dependencies are intended for jupyterhub/k8s-hub:0.11.1.
 python = "~3.8"
-cryptography = "~3.2"
+cryptography = "~3.3,>=3.3.2"  # 3.2 -> 3.3 for security weaknesses
+kubernetes = "~12.0"
 ldap3 = "~2.8"
 PyJWT = "~1.7"
+PyYAML = "~5.4"  # 5.3 -> 5.4 for types-PyYAML
 
 
 [tool.poetry.dev-dependencies]
@@ -67,6 +69,7 @@ pre-commit = "~2.18"
 pylint = "~2.13"
 "ruamel.yaml.cmd" = "~0.5"
 safety = "~1.10"
+types-PyYAML = "~5.4"
 
 
 [tool.pylint.messages-control]
