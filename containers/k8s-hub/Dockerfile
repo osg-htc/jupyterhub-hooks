@@ -9,8 +9,8 @@ USER root
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    #
-    && python3 -m pip install --no-cache-dir osg-jupyter==0.0.1
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install --no-cache-dir osg-jupyter==0.2.0
 
 USER jovyan
