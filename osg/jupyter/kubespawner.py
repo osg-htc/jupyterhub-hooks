@@ -10,7 +10,7 @@ See https://github.com/kubernetes-client/python/blob/master/kubernetes/README.md
 A patch operation consists of:
 
   - `path`: Slash-delimited, rooted at either "pod" or "notebook"
-  - `op`: Either "set" or "extend"
+  - `op`: Either "append", "extend", "prepend", or "set"
   - `value`: A scalar, a list of values, or a dictionary
 
 Scalar values support substitutions of information about the user for whom
@@ -80,10 +80,14 @@ def apply_patch(patch, pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
     for p in path_parts[1:-1]:
         loc = getattr(loc, p)
 
-    if op == "set":
-        setattr(loc, path_parts[-1], value)
+    if op == "append":
+        getattr(loc, path_parts[-1]).append(value)
     elif op == "extend":
         getattr(loc, path_parts[-1]).extend(value)
+    elif op == "prepend":
+        getattr(loc, path_parts[-1]).insert(0, value)
+    elif op == "set":
+        setattr(loc, path_parts[-1], value)
     else:
         raise RuntimeError(f"Not a valid patch op: {op}")
 
