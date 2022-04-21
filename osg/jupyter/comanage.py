@@ -5,6 +5,7 @@ Query COmanage.
 import contextlib
 import dataclasses
 import os
+import sys
 from typing import Optional
 
 import ldap3  # type: ignore[import]
@@ -66,3 +67,19 @@ def get_ospool_user(eppn: str) -> Optional[OSPoolUser]:
                 return OSPoolUser(eppn, usernames[0], uids[0], gids[0])
 
     return None
+
+
+def main() -> None:
+    """
+    Query LDAP using the first command-line argument as the filter.
+
+    This is intended to aid in debugging issues.
+    """
+
+    with ldap_connection() as conn:
+        conn.search(LDAP_PEOPLE_BASE_DN, sys.argv[1], attributes=["*"])
+        print(conn.entries)
+
+
+if __name__ == "__main__":
+    main()
