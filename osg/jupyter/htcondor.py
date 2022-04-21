@@ -48,6 +48,7 @@ def derive_key(password: bytes) -> bytes:
 
 
 def create_token(
+    *,
     iss: str,
     sub: str,
     lifetime: int = 60 * 60 * 24,
