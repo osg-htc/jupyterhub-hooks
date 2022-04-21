@@ -41,6 +41,21 @@ CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ["_condor_SEC_TOKEN_ISSUER_KEY"]
 CONDOR_UID_DOMAIN = os.environ["_condor_UID_DOMAIN"]
 
 
+def pre_spawn_hook(spawner) -> None:
+    """
+    Modifies the spawner if the JupyterHub user is also an OSPool user.
+    """
+
+    eppn = spawner.user.name  # FIXME: Assumption that JupyterHub usernames are ePPNs.
+
+    if comanage.get_ospool_user(eppn):
+
+        # Do not force a GID on files. Doing so might cause mounted secrets
+        # to have permissions that they should not.
+
+        spawner.fs_gid = None
+
+
 def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
     """
     Modifies the pod if the JupyterHub user is also an OSPool user.
