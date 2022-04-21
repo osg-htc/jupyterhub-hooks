@@ -27,6 +27,7 @@ from typing import Any
 import kubernetes.client as k8s  # type: ignore[import]
 import yaml
 
+from osg.jupyter import htcondor  # not to be confused with the Python bindings
 from osg.jupyter import comanage
 
 __all__ = ["modify_pod_hook"]
@@ -34,6 +35,10 @@ __all__ = ["modify_pod_hook"]
 KUBESPAWNER_CONFIG = pathlib.Path(
     os.environ.get("_osg_JUPYTERHUB_KUBESPAWNER_CONFIG", "/etc/osg/jupyterhub_kubespawner.yaml")
 )
+
+CONDOR_CONDOR_HOST = os.environ["_condor_CONDOR_HOST"]
+CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ["_condor_SEC_TOKEN_ISSUER_KEY"]
+CONDOR_UID_DOMAIN = os.environ["_condor_UID_DOMAIN"]
 
 
 def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
@@ -49,6 +54,7 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
                 config = yaml.safe_load(fp)
             for patch in config:
                 apply_patch(patch, pod, user)
+            add_htcondor_idtoken(pod, user)
 
     return pod
 
@@ -130,3 +136,24 @@ def build_value(raw_value, user: comanage.OSPoolUser) -> Any:
         return [build_value(x, user) for x in raw_value]
 
     return raw_value  # assume that this is a scalar to be used as-is
+
+
+def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
+    """
+    Adds an HTCondor IDTOKEN to the notebook container's environment.
+    """
+
+    iss = CONDOR_CONDOR_HOST
+    sub = f"{user.username}@{CONDOR_UID_DOMAIN}"
+    kid = CONDOR_SEC_TOKEN_ISSUER_KEY
+
+    token = htcondor.create_token(iss=iss, sub=sub, kid=kid)
+
+    for c in pod.spec.containers:
+        if c.name == "notebook":
+            c.env.append(
+                k8s.V1EnvVar(
+                    name="_osg_HTCONDOR_IDTOKEN",
+                    value=token,
+                )
+            )
