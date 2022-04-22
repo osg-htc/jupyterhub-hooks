@@ -18,6 +18,7 @@ the pod is being created. Dictionary values are used to build objects. The
 corresponding class in the Kubernetes Python API must be specified via the
 `_` (underscore) field.
 """
+# FIXME: Assumptions: CILogon for auth, usernames are ePPNs
 
 import dataclasses
 import os
@@ -30,7 +31,11 @@ import yaml
 from osg.jupyter import htcondor  # not to be confused with the Python bindings
 from osg.jupyter import comanage
 
-__all__ = ["modify_pod_hook"]
+__all__ = [
+    "auth_state_hook",
+    "modify_pod_hook",
+    "pre_spawn_hook",
+]
 
 KUBESPAWNER_CONFIG = pathlib.Path(
     os.environ.get("_osg_JUPYTERHUB_KUBESPAWNER_CONFIG", "/etc/osg/jupyterhub_kubespawner.yaml")
@@ -41,14 +46,22 @@ CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ["_condor_SEC_TOKEN_ISSUER_KEY"]
 CONDOR_UID_DOMAIN = os.environ["_condor_UID_DOMAIN"]
 
 
+def auth_state_hook(spawner, auth_state) -> None:
+    """
+    Saves the user's OIDC userinfo object to the spawner.
+    """
+
+    spawner.userdata = (auth_state or {}).get("cilogon_user", {})
+
+
 def pre_spawn_hook(spawner) -> None:
     """
     Modifies the spawner if the JupyterHub user is also an OSPool user.
     """
 
-    eppn = spawner.user.name  # FIXME: Assumption that JupyterHub usernames are ePPNs.
+    eppn = spawner.user.name
 
-    if comanage.get_ospool_user(eppn):
+    if comanage.get_ospool_user(eppn, spawner.userdata):
 
         # Do not force a GID on files. Doing so might cause mounted secrets
         # to have permissions that they should not.
@@ -61,9 +74,9 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
     Modifies the pod if the JupyterHub user is also an OSPool user.
     """
 
-    eppn = spawner.user.name  # FIXME: Assumption that JupyterHub usernames are ePPNs.
+    eppn = spawner.user.name
 
-    if user := comanage.get_ospool_user(eppn):
+    if user := comanage.get_ospool_user(eppn, spawner.userdata):
         if KUBESPAWNER_CONFIG.exists():
             with open(KUBESPAWNER_CONFIG, encoding="utf-8") as fp:
                 config = yaml.safe_load(fp)
