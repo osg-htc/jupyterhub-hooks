@@ -6,7 +6,7 @@ on:
     - "[0-9]*"
   repository_dispatch:
     types:
-    - build-last-tag
+    - build-latest-tag
 
 jobs:
   build-and-push:
@@ -27,7 +27,7 @@ jobs:
       run: echo "::set-output name=tag::$(git describe --tags --match '[0-9]*' --abbrev=0)"
 
     - name: Checkout tag
-      run: git checkout ${{ steps.version-tag.output.tag }}
+      run: git checkout ${{ steps.version-tag.outputs.tag }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
@@ -45,5 +45,5 @@ jobs:
         context: containers/k8s-hub
         push: true
         tags: |
-          hub.opensciencegrid.org/osg-jupyter/k8s-hub:${{ steps.build-tag.output.tag }}
-          hub.opensciencegrid.org/osg-jupyter/k8s-hub:${{ steps.version-tag.output.tag }}
+          hub.opensciencegrid.org/osg-jupyter/k8s-hub:${{ steps.build-tag.outputs.tag }}
+          hub.opensciencegrid.org/osg-jupyter/k8s-hub:${{ steps.version-tag.outputs.tag }}
