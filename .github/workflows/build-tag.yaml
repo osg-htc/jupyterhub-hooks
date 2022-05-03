@@ -11,6 +11,13 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image-name:
+        - k8s-hub
+        - sssd
+
     steps:
 
     - name: Get Git repository
@@ -39,11 +46,11 @@ jobs:
         username: ${{ secrets.HUB_USERNAME }}
         password: ${{ secrets.HUB_TOKEN }}
 
-    - name: Build and Push k8s-hub
+    - name: Build and push image
       uses: docker/build-push-action@v2
       with:
-        context: containers/k8s-hub
+        context: containers/${{ matrix.image-name }}
         push: true
         tags: |
-          hub.opensciencegrid.org/osg-jupyter/k8s-hub:${{ steps.build-tag.outputs.tag }}
-          hub.opensciencegrid.org/osg-jupyter/k8s-hub:${{ steps.version-tag.outputs.tag }}
+          hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:${{ steps.build-tag.outputs.tag }}
+          hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:${{ steps.version-tag.outputs.tag }}
