@@ -44,5 +44,6 @@ jobs:
         context: containers/${{ matrix.image-name }}
         push: true
         tags: |
+          hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:sha-${{ github.sha }}
           hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:${{ steps.build-tag.outputs.tag }}
           hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:${{ steps.version-tag.outputs.tag }}
