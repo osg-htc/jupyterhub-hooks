@@ -19,8 +19,6 @@ jobs:
 
     - name: Get Git repository
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
     - name: Set build tag
       id: build-tag
@@ -29,9 +27,6 @@ jobs:
     - name: Set version tag
       id: version-tag
       run: echo "::set-output name=tag::latest"
-
-    - name: Checkout tag
-      run: git checkout ${{ steps.version-tag.outputs.tag }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
