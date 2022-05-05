@@ -10,7 +10,7 @@ RUN apt-get update \
     && apt-get upgrade -y \
     #
     && apt-get install -y git \
-    && git clone -b cilogon-fixes-build \
+    && git clone \
          https://github.com/brianaydemir/oauthenticator.git \
          /build/oauth \
     && python3 -m pip install -U --no-cache-dir /build/oauth \
