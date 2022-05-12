@@ -3,10 +3,6 @@ name: Build and push container images for Git tags
 on:
   push:
     tags:
-    - "[0-9]*"
-  repository_dispatch:
-    types:
-    - build-latest-tag
 
 jobs:
   build-and-push:
@@ -31,7 +27,7 @@ jobs:
 
     - name: Set version tag
       id: version-tag
-      run: echo "::set-output name=tag::$(git describe --tags --match '[0-9]*' --abbrev=0)"
+      run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
 
     - name: Checkout tag
       run: git checkout ${{ steps.version-tag.outputs.tag }}
