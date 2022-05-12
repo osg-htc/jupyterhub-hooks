@@ -1,12 +1,9 @@
-name: Build and push container images for Git tags
+name: Build and push container images for testing
 
 on:
   push:
-    tags:
-    - "[0-9]*"
-  repository_dispatch:
-    types:
-    - build-latest-tag
+    branches:
+    - main
 
 jobs:
   build-and-push:
@@ -22,8 +19,6 @@ jobs:
 
     - name: Get Git repository
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
     - name: Set build tag
       id: build-tag
@@ -31,10 +26,7 @@ jobs:
 
     - name: Set version tag
       id: version-tag
-      run: echo "::set-output name=tag::$(git describe --tags --match '[0-9]*' --abbrev=0)"
-
-    - name: Checkout tag
-      run: git checkout ${{ steps.version-tag.outputs.tag }}
+      run: echo "::set-output name=tag::latest"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
@@ -52,5 +44,6 @@ jobs:
         context: docker/${{ matrix.image-name }}
         push: true
         tags: |
+          hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:sha-${{ github.sha }}
           hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:${{ steps.build-tag.outputs.tag }}
           hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:${{ steps.version-tag.outputs.tag }}
