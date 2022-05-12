@@ -23,6 +23,7 @@ corresponding class in the Kubernetes Python API must be specified via the
 import dataclasses
 import os
 import pathlib
+import re
 from typing import Any
 
 import kubernetes.client as k8s  # type: ignore[import]
@@ -44,6 +45,11 @@ KUBESPAWNER_CONFIG = pathlib.Path(
 CONDOR_CONDOR_HOST = os.environ["_condor_CONDOR_HOST"]
 CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ["_condor_SEC_TOKEN_ISSUER_KEY"]
 CONDOR_UID_DOMAIN = os.environ["_condor_UID_DOMAIN"]
+
+NOTEBOOK_CONTAINER_NAME = "notebook"
+
+
+# --------------------------------------------------------------------------
 
 
 def auth_state_hook(spawner, auth_state) -> None:
@@ -80,11 +86,36 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
         if KUBESPAWNER_CONFIG.exists():
             with open(KUBESPAWNER_CONFIG, encoding="utf-8") as fp:
                 config = yaml.safe_load(fp)
-            for patch in config:
-                apply_patch(patch, pod, user)
-            add_htcondor_idtoken(pod, user)
+            if is_pod_modifiable(config, pod):
+                for patch in config.get("patches", []):
+                    apply_patch(patch, pod, user)
+                add_htcondor_idtoken(pod, user)
 
     return pod
+
+
+# --------------------------------------------------------------------------
+
+
+def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
+    """
+    Adds an HTCondor IDTOKEN to the notebook container's environment.
+    """
+
+    iss = CONDOR_CONDOR_HOST
+    sub = f"{user.username}@{CONDOR_UID_DOMAIN}"
+    kid = CONDOR_SEC_TOKEN_ISSUER_KEY
+
+    token = htcondor.create_token(iss=iss, sub=sub, kid=kid)
+
+    for c in pod.spec.containers:
+        if c.name == "notebook":
+            c.env.append(
+                k8s.V1EnvVar(
+                    name="_osg_HTCONDOR_IDTOKEN",
+                    value=token,
+                )
+            )
 
 
 def apply_patch(patch, pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
@@ -92,12 +123,7 @@ def apply_patch(patch, pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
     Applies a patch operation to the given pod for the given user.
     """
 
-    for c in pod.spec.containers:
-        if c.name == "notebook":
-            notebook = c
-            break
-    else:
-        raise RuntimeError("Failed to locate the pod's notebook container")
+    notebook = get_notebook_container(pod)
 
     path = patch["path"]
     path_parts = path.split("/")
@@ -166,22 +192,28 @@ def build_value(raw_value, user: comanage.OSPoolUser) -> Any:
     return raw_value  # assume that this is a scalar to be used as-is
 
 
-def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
+def get_notebook_container(pod: k8s.V1Pod) -> k8s.V1Container:
     """
-    Adds an HTCondor IDTOKEN to the notebook container's environment.
+    Returns the pod's notebook container.
     """
-
-    iss = CONDOR_CONDOR_HOST
-    sub = f"{user.username}@{CONDOR_UID_DOMAIN}"
-    kid = CONDOR_SEC_TOKEN_ISSUER_KEY
-
-    token = htcondor.create_token(iss=iss, sub=sub, kid=kid)
 
     for c in pod.spec.containers:
-        if c.name == "notebook":
-            c.env.append(
-                k8s.V1EnvVar(
-                    name="_osg_HTCONDOR_IDTOKEN",
-                    value=token,
-                )
-            )
+        if c.name == NOTEBOOK_CONTAINER_NAME:
+            return c
+
+    raise RuntimeError("Failed to locate the pod's notebook container")
+
+
+def is_pod_modifiable(config, pod: k8s.V1Pod) -> bool:
+    """
+    Determines whether the pod should be patched according to the config.
+    """
+
+    notebook = get_notebook_container(pod)
+
+    for rule in config.get("exceptions", []):
+        if "image" in rule:
+            if re.search(rule["image"], notebook.image):
+                return False
+
+    return True
