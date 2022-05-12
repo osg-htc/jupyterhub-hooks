@@ -41,7 +41,7 @@ jobs:
     - name: Build and push image
       uses: docker/build-push-action@v2
       with:
-        context: containers/${{ matrix.image-name }}
+        context: docker/${{ matrix.image-name }}
         push: true
         tags: |
           hub.opensciencegrid.org/osg-jupyter/${{ matrix.image-name }}:sha-${{ github.sha }}
