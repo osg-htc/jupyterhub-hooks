@@ -5,7 +5,8 @@ The configuration file is a YAML file containing a list of patch operations
 inspired by JSON Patches (RFC 6902).
 
 Field and class names must match the Kubernetes Python API.
-See https://github.com/kubernetes-client/python/blob/master/kubernetes/README.md.
+See https://github.com/kubernetes-client/python/blob/master/kubernetes/README.md,
+in particular, the section "Documentation for Models".
 
 A patch operation consists of:
 
@@ -13,12 +14,14 @@ A patch operation consists of:
   - `op`: Either "append", "extend", "prepend", or "set"
   - `value`: A scalar, a list of values, or a dictionary
 
-Scalar values support substitutions of information about the user for whom
-the pod is being created. Dictionary values are used to build objects. The
-corresponding class in the Kubernetes Python API must be specified via the
-`_` (underscore) field.
+String values support substitutions of information about the user for whom
+the pod is being created.
+
+Dictionary values are used to build objects. If the name of a class in the
+Kubernetes Python API is specified via the `_` key, then that class will be
+used to construct the object instead of the built-in `dict` class.
 """
-# FIXME: Assumptions: CILogon for auth, usernames are ePPNs
+# FIXME: Assumptions: CILogon for auth, usernames are ePPNs, KubeSpawner uses "notebook"
 
 import dataclasses
 import os
@@ -108,14 +111,14 @@ def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
 
     token = htcondor.create_token(iss=iss, sub=sub, kid=kid)
 
-    for c in pod.spec.containers:
-        if c.name == "notebook":
-            c.env.append(
-                k8s.V1EnvVar(
-                    name="_osg_HTCONDOR_IDTOKEN",
-                    value=token,
-                )
-            )
+    notebook = get_notebook_container(pod)
+
+    notebook.env.append(
+        k8s.V1EnvVar(
+            name="_osg_HTCONDOR_IDTOKEN",
+            value=token,
+        )
+    )
 
 
 def apply_patch(patch, pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
@@ -176,10 +179,15 @@ def build_value(raw_value, user: comanage.OSPoolUser) -> Any:
         return raw_value
 
     if isinstance(raw_value, dict):
-        cls = k8s.__dict__[raw_value["_"]]
-        args = {}
 
-        raw_value.pop("_")
+        ## The value could be an API object or a built-in dictionary.
+
+        if "_" in raw_value:
+            cls = k8s.__dict__[raw_value.pop("_")]
+        else:
+            cls = dict
+
+        args = {}
 
         for k, v in raw_value.items():
             args[k] = build_value(v, user)
