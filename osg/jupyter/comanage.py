@@ -44,9 +44,7 @@ def get_ospool_user(
     oidc_userinfo: Optional[Dict[str, Any]] = None,
 ) -> Optional[OSPoolUser]:
     """
-    Returns the OSPool user for the given ePPN.
-
-    As a fallback, use the OIDC "sub" claim.
+    Returns the OSPool user for the given ePPN or OIDC "sub" claim.
     """
 
     oidc_sub_claim = (oidc_userinfo or {}).get("sub", None)
@@ -109,7 +107,9 @@ def main() -> None:
     """
     Query LDAP using the first command-line argument as the filter.
 
-    This is intended to aid in debugging issues.
+    This function is intended to aid in debugging issues.
+
+    The filter must be formatted for use with the `ldap3` library.
     """
 
     with ldap_connection() as conn:
