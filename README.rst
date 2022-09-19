@@ -12,11 +12,11 @@ Installation
 
 Use ``pip`` to install this package directly from this repository::
 
-    pip install git+https://github.com/brianaydemir/osg-jupyter.git@<ref>
+    python3 -m pip install git+https://github.com/brianaydemir/osg-jupyter.git@<ref>
 
 In most cases, replace ``<ref>`` with the `tag for a specific version`_::
 
-    pip install git+https://github.com/brianaydemir/osg-jupyter.git@1.0.0
+    python3 -m pip install git+https://github.com/brianaydemir/osg-jupyter.git@1.0.0
 
 .. _tag for a specific version: https://github.com/brianaydemir/osg-jupyter/tags
 
