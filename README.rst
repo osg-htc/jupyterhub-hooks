@@ -2,9 +2,12 @@ osg-jupyter
 ===========
 
 This Python package provides `KubeSpawner`_ hooks that can be used to
-customize single-user notebook servers in non-trivial ways.
+customize single-user notebook servers in non-trivial ways. It is intended
+to support `OSG`_'s customizations for `OSPool`_ users.
 
 .. _KubeSpawner: https://jupyterhub-kubespawner.readthedocs.io/en/latest/
+.. _OSG: https://osg-htc.org/
+.. _OSPool: https://osg-htc.org/services/open_science_pool.html
 
 
 Installation
@@ -24,7 +27,9 @@ In most cases, replace ``<ref>`` with the `tag for a specific version`_::
 KubeSpawner Configuration
 -------------------------
 
-Documentation can be found in `<osg/jupyter/kubespawner.py>`_.
+Some documentation can be found in `<osg/jupyter/kubespawner.py>`_.
+
+The default location for the configuration file is ``/etc/osg/jupyterhub_kubespawner.yaml``.
 
 Sample configuration file::
 
@@ -57,3 +62,15 @@ Sample configuration file::
       - name: shared-data
         mount_path: /data
         _: V1VolumeMount
+
+    # The `ospool-patches` key is similar to `patches` except that it
+    # applies only when the logged in user is also an OSPool user.
+
+    ospool-patches:
+
+    - path: notebook/security_context
+      op: set
+      value:
+        run_as_user: "{user.uid}"
+        run_as_group: "{user.gid}"
+        _: V1SecurityContext

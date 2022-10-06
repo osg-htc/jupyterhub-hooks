@@ -41,7 +41,7 @@ sqlite_cache = true
 
 [tool.poetry]
 name = "osg_jupyter"
-version = "1.1.0rc1"
+version = "1.1.0rc2"
 description = "OSG's libraries for customizing Jupyter"
 license = "Apache-2.0"
 authors = ["Brian Aydemir <baydemir@morgridge.org>"]
@@ -64,11 +64,11 @@ bandit = "~1.7"
 black = "~22.8"
 docutils = "~0.19"
 isort = "~5.10"
-mypy = "~0.971"
+mypy = "~0.982"
 pre-commit = "~2.20"
 pylint = "~2.15"
 "ruamel.yaml.cmd" = "~0.6"
-safety = "~2.1"
+safety = "~2.3"
 types-PyYAML = "~5.4"
 
 

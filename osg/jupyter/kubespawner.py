@@ -1,7 +1,7 @@
 """
 KubeSpawner hooks.
 
-The configuration file is a YAML file containing a list of patch operations
+The configuration file is a YAML file containing lists of patch operations
 inspired by JSON Patches (RFC 6902).
 
 Field and class names must match the Kubernetes Python API.
@@ -27,7 +27,7 @@ import dataclasses
 import os
 import pathlib
 import re
-from typing import Any
+from typing import Any, Optional
 
 import kubernetes.client as k8s  # type: ignore[import]
 import yaml
@@ -80,19 +80,25 @@ def pre_spawn_hook(spawner) -> None:
 
 def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
     """
-    Modifies the pod if the JupyterHub user is also an OSPool user.
+    Modifies the pod as specified in this hook's configuration.
     """
 
+    config = {}
     eppn = spawner.user.name
 
-    if user := comanage.get_ospool_user(eppn, spawner.userdata):
-        if KUBESPAWNER_CONFIG.exists():
-            with open(KUBESPAWNER_CONFIG, encoding="utf-8") as fp:
-                config = yaml.safe_load(fp)
-            if is_pod_modifiable(config, pod):
-                for patch in config.get("patches", []):
-                    apply_patch(patch, pod, user)
-                add_htcondor_idtoken(pod, user)
+    try:
+        with open(KUBESPAWNER_CONFIG, encoding="utf-8") as fp:
+            config = yaml.safe_load(fp)
+    except FileNotFoundError:
+        pass
+
+    if is_pod_modifiable(config, pod):
+        for patch in config.get("patches", []):
+            apply_patch(patch, pod)
+        if user := comanage.get_ospool_user(eppn, spawner.userdata):
+            for patch in config.get("ospool-patches", []):
+                apply_patch(patch, pod, user)
+            add_htcondor_idtoken(pod, user)
 
     return pod
 
@@ -121,7 +127,7 @@ def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
     )
 
 
-def apply_patch(patch, pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
+def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolUser] = None) -> None:
     """
     Applies a patch operation to the given pod for the given user.
     """
@@ -155,26 +161,28 @@ def apply_patch(patch, pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
         raise RuntimeError(f"Not a valid patch op: {op}")
 
 
-def build_value(raw_value, user: comanage.OSPoolUser) -> Any:
+def build_value(raw_value, user: Optional[comanage.OSPoolUser] = None) -> Any:
     """
     Builds a Kubernetes Python API object or value.
     """
 
     if isinstance(raw_value, str):
 
-        ## The user's UID and GID should yield integers instead of a strings.
+        if user:
 
-        if raw_value == "{user.uid}":
-            return user.uid
+            ## The user's UID and GID should yield integers instead of a strings.
 
-        if raw_value == "{user.gid}":
-            return user.gid
+            if raw_value == "{user.uid}":
+                return user.uid
 
-        for field in dataclasses.fields(user):
-            k = f"{{user.{field.name}}}"
-            v = getattr(user, field.name)
+            if raw_value == "{user.gid}":
+                return user.gid
 
-            raw_value = raw_value.replace(k, str(v))
+            for field in dataclasses.fields(user):
+                k = f"{{user.{field.name}}}"
+                v = getattr(user, field.name)
+
+                raw_value = raw_value.replace(k, str(v))
 
         return raw_value
 
