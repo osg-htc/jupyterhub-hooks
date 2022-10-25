@@ -1,25 +1,8 @@
 """
 KubeSpawner hooks.
 
-The configuration file is a YAML file containing lists of patch operations
-inspired by JSON Patches (RFC 6902).
-
-Field and class names must match the Kubernetes Python API.
-See https://github.com/kubernetes-client/python/blob/master/kubernetes/README.md,
-in particular, the section "Documentation for Models".
-
-A patch operation consists of:
-
-  - `path`: Slash-delimited, rooted at either "pod" or "notebook"
-  - `op`: Either "append", "extend", "prepend", or "set"
-  - `value`: A scalar, a list of values, or a dictionary
-
-String values support substitutions of information about the user for whom
-the pod is being created.
-
-Dictionary values are used to build objects. If the name of a class in the
-Kubernetes Python API is specified via the `_` key, then that class will be
-used to construct the object instead of the built-in `dict` class.
+The configuration file is a YAML file whose structure is determined by the
+class `Configuration`.
 """
 # FIXME: Assumptions: CILogon for auth, usernames are ePPNs, KubeSpawner uses "notebook"
 
@@ -27,10 +10,10 @@ import dataclasses
 import os
 import pathlib
 import re
-from typing import Any, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import kubernetes.client as k8s  # type: ignore[import]
-import yaml
+from baydemir import parsing
 
 from osg.jupyter import htcondor  # not to be confused with the Python bindings
 from osg.jupyter import comanage
@@ -38,6 +21,7 @@ from osg.jupyter import comanage
 __all__ = [
     "auth_state_hook",
     "modify_pod_hook",
+    "options_form",
     "pre_spawn_hook",
 ]
 
@@ -52,6 +36,93 @@ CONDOR_UID_DOMAIN = os.environ["_condor_UID_DOMAIN"]
 NOTEBOOK_CONTAINER_NAME = "notebook"
 
 
+@dataclasses.dataclass
+class PatchList:
+    """
+    A named list of patch operations.
+
+    Patch operations allow for defining modifications to make to user pods
+    beyond what `KubeSpawner` overrides support. They are inspired by JSON
+    Patches (RFC 6902).
+
+    A patch operation consists of:
+
+      - `path`: Slash-delimited, rooted at either "pod" or "notebook"
+      - `op`: Either "append", "extend", "prepend", or "set"
+      - `value`: A scalar, a list of values, or a dictionary
+
+    String values support substitutions of information about the user for
+    whom the pod is being created.
+
+    Dictionary values are used to build objects. If the name of a class in
+    the Kubernetes Python API is specified via the `_` key, then that class
+    will be used to construct the object instead of the built-in `dict`.
+
+    Reference: https://github.com/kubernetes-client/python/blob/master/kubernetes/README.md
+
+    Examples:
+
+    - path: pod/spec/volumes
+      op: extend
+      value:
+      - name: shared-data
+        nfs:
+          server: nfs.example.com
+          path: /data
+          _: V1NFSVolumeSource
+        _: V1Volume
+
+    - path: notebook/security_context
+      op: set
+      value:
+        run_as_user: "{user.uid}"
+        run_as_group: "{user.gid}"
+        _: V1SecurityContext
+    """
+
+    name: str
+    spec: List[Dict[Literal["path", "op", "value"], Any]]
+
+
+@dataclasses.dataclass
+class ProfileList:
+    """
+    A named list of profiles.
+
+    The structure of each profile is determined by `KubeSpawner.profile_list`.
+    """
+
+    name: str
+    spec: List[Dict[str, Any]]
+
+
+@dataclasses.dataclass
+class UserOptions:
+    """
+    Defines the options to present to the user.
+
+    Users are differentiated based on their group memberships.
+
+    Note that the patches apply to *all* of the options that are eventually
+    presented to the user.
+    """
+
+    groups: List[str]
+    profile_lists: List[str]
+    patch_lists: List[str] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
+class Configuration:
+    """
+    Defines the structure of the configuration file used by the hooks below.
+    """
+
+    patch_lists: List[PatchList]
+    profile_lists: List[ProfileList]
+    user_options: List[UserOptions]
+
+
 # --------------------------------------------------------------------------
 
 
@@ -63,14 +134,35 @@ def auth_state_hook(spawner, auth_state) -> None:
     spawner.userdata = (auth_state or {}).get("cilogon_user", {})
 
 
+def options_form(spawner) -> str:
+    """
+    Modifies the spawner's `profile_list` for the current user.
+    """
+    ## Reference: https://discourse.jupyter.org/t/tailoring-spawn-options-and-server-configuration-to-certain-users/8449
+
+    config = get_config()
+    person = comanage.get_person(spawner.userdata)
+
+    if person:
+        for options in config.user_options:
+            groups = set(options.groups)
+
+            if groups.intersection(set(person.groups)) or not groups:
+                for name in options.profile_lists:
+                    if pl := get_profile_list(config, name):
+                        spawner.profile_list.extend(pl.spec)
+
+    return spawner._options_form_default()  # type: ignore[no-any-return]
+
+
 def pre_spawn_hook(spawner) -> None:
     """
     Modifies the spawner if the JupyterHub user is also an OSPool user.
     """
 
-    eppn = spawner.user.name
+    person = comanage.get_person(spawner.userdata)
 
-    if comanage.get_ospool_user(eppn, spawner.userdata):
+    if person and person.ospool:
 
         # Do not force a GID on files. Doing so might cause mounted secrets
         # to have permissions that they should not.
@@ -83,22 +175,21 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
     Modifies the pod as specified in this hook's configuration.
     """
 
-    config = {}
-    eppn = spawner.user.name
+    config = get_config()
+    person = comanage.get_person(spawner.userdata)
 
-    try:
-        with open(KUBESPAWNER_CONFIG, encoding="utf-8") as fp:
-            config = yaml.safe_load(fp)
-    except FileNotFoundError:
-        pass
+    if person:
+        for options in config.user_options:
+            groups = set(options.groups)
 
-    if is_pod_modifiable(config, pod):
-        for patch in config.get("patches", []):
-            apply_patch(patch, pod)
-        if user := comanage.get_ospool_user(eppn, spawner.userdata):
-            for patch in config.get("ospool-patches", []):
-                apply_patch(patch, pod, user)
-            add_htcondor_idtoken(pod, user)
+            if groups.intersection(set(person.groups)) or not groups:
+                for name in options.patch_lists:
+                    if pl := get_patch_list(config, name):
+                        for patch in pl.spec:
+                            apply_patch(patch, pod, person.ospool)
+
+        if person.ospool:
+            add_htcondor_idtoken(pod, person.ospool)
 
     return pod
 
@@ -106,7 +197,42 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
 # --------------------------------------------------------------------------
 
 
-def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
+def get_config() -> Configuration:
+    """
+    Returns the configuration for the hooks.
+    """
+
+    try:
+        config = parsing.load_yaml(KUBESPAWNER_CONFIG, Configuration)
+    except FileNotFoundError:
+        config = Configuration(patch_lists=[], profile_lists=[], user_options=[])
+
+    return config
+
+
+def get_patch_list(config: Configuration, name: str) -> Optional[PatchList]:
+    """
+    Returns a patch list from the configuration with the given name.
+    """
+
+    for pl in config.patch_lists:
+        if pl.name == name:
+            return pl
+    return None
+
+
+def get_profile_list(config: Configuration, name: str) -> Optional[ProfileList]:
+    """
+    Returns a profile list from the configuration with the given name.
+    """
+
+    for pl in config.profile_lists:
+        if pl.name == name:
+            return pl
+    return None
+
+
+def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolPerson) -> None:
     """
     Adds an HTCondor IDTOKEN to the notebook container's environment.
     """
@@ -127,7 +253,7 @@ def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolUser) -> None:
     )
 
 
-def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolUser] = None) -> None:
+def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = None) -> None:
     """
     Applies a patch operation to the given pod for the given user.
     """
@@ -161,7 +287,7 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolUser] = Non
         raise RuntimeError(f"Not a valid patch op: {op}")
 
 
-def build_value(raw_value, user: Optional[comanage.OSPoolUser] = None) -> Any:
+def build_value(raw_value, user: Optional[comanage.OSPoolPerson] = None) -> Any:
     """
     Builds a Kubernetes Python API object or value.
     """

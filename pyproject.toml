@@ -41,7 +41,7 @@ sqlite_cache = true
 
 [tool.poetry]
 name = "osg_jupyter"
-version = "1.1.0rc2"
+version = "2.0.0rc1"
 description = "OSG's libraries for customizing Jupyter"
 license = "Apache-2.0"
 authors = ["Brian Aydemir <baydemir@morgridge.org>"]
@@ -58,10 +58,13 @@ ldap3 = "~2.8"
 PyJWT = "~1.7"
 PyYAML = "~5.4"  # 5.3 -> 5.4 for types-PyYAML
 
+## Other dependencies.
+baydemir = { git = "https://github.com/brianaydemir/pythonlib.git", tag = "1.0.1" }
 
-[tool.poetry.dev-dependencies]
+
+[tool.poetry.group.dev.dependencies]
 bandit = "~1.7"
-black = "~22.8"
+black = "~22.10"
 docutils = "~0.19"
 isort = "~5.10"
 mypy = "~0.982"

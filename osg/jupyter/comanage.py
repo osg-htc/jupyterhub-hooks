@@ -7,14 +7,15 @@ import contextlib
 import dataclasses
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import ldap3  # type: ignore[import]
 
 __all__ = [
-    "OSPoolUser",
+    "COmanagePerson",
+    "OSPoolPerson",
     #
-    "get_ospool_user",
+    "get_person",
 ]
 
 LDAP_URL = os.environ["_comanage_LDAP_URL"]
@@ -24,11 +25,17 @@ LDAP_PASSWORD = os.environ["_comanage_LDAP_PASSWORD"]
 
 
 @dataclasses.dataclass
-class OSPoolUser:
-    eppn: str
+class OSPoolPerson:
     username: str
     uid: int
     gid: int
+
+
+@dataclasses.dataclass
+class COmanagePerson:
+    sub: str
+    groups: List[str]
+    ospool: Optional[OSPoolPerson] = None
 
 
 @contextlib.contextmanager
@@ -39,50 +46,34 @@ def ldap_connection():
         yield conn
 
 
-def get_ospool_user(
-    eppn: str,
-    oidc_userinfo: Optional[Dict[str, Any]] = None,
-) -> Optional[OSPoolUser]:
+def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
     """
-    Returns the OSPool user for the given ePPN or OIDC "sub" claim.
+    Returns the COmanage person for the given OIDC "sub" claim.
     """
 
-    oidc_sub_claim = (oidc_userinfo or {}).get("sub", None)
+    oidc_sub = oidc_userinfo.get("sub", None)
     ldap_attributes = ["isMemberOf", "voPersonApplicationUID", "uidNumber", "gidNumber"]
-    ospool_user = None
+    person = None
 
-    if not ospool_user:
+    if not person and oidc_sub:
         with ldap_connection() as conn:
             conn.search(
                 LDAP_PEOPLE_BASE_DN,
-                f"(eduPersonPrincipalName={eppn})",
+                f"(uid={oidc_sub})",
                 attributes=ldap_attributes,
             )
 
-            ospool_user = make_ospool_user(eppn, conn.entries)
+            person = make_person(oidc_sub, conn.entries)
 
-    if not ospool_user and oidc_sub_claim:
-        with ldap_connection() as conn:
-            conn.search(
-                LDAP_PEOPLE_BASE_DN,
-                f"(uid={oidc_sub_claim})",
-                attributes=ldap_attributes,
-            )
-
-            ospool_user = make_ospool_user(eppn, conn.entries)
-
-    return ospool_user
+    return person
 
 
-def make_ospool_user(eppn: str, entries) -> Optional[OSPoolUser]:
+def make_person(oidc_sub: str, entries) -> Optional[COmanagePerson]:
     """
-    Returns an OSPool user object from the given list of LDAP entries.
-
-    Assumes that the entries come from a search for the user with the
-    given ePPN.
+    Returns a COmanage person based on the given list of LDAP entries.
     """
 
-    ospool_user = None
+    person = None
 
     if len(entries) == 1:
         attrs = entries[0].entry_attributes_as_dict
@@ -98,9 +89,13 @@ def make_ospool_user(eppn: str, entries) -> Optional[OSPoolUser]:
             and len(uids) == 1
             and len(gids) == 1
         ):
-            ospool_user = OSPoolUser(eppn, usernames[0], uids[0], gids[0])
+            ospool_person = OSPoolPerson(usernames[0], uids[0], gids[0])
+        else:
+            ospool_person = None
 
-    return ospool_user
+        person = COmanagePerson(oidc_sub, groups, ospool_person)
+
+    return person
 
 
 def main() -> None:
