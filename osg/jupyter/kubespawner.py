@@ -4,7 +4,7 @@ KubeSpawner hooks.
 The configuration file is a YAML file whose structure is determined by the
 class `Configuration`.
 """
-# FIXME: Assumptions: CILogon for auth, usernames are ePPNs, KubeSpawner uses "notebook"
+# FIXME: Assumptions: CILogon for auth, KubeSpawner uses "notebook"
 
 import dataclasses
 import os
@@ -122,6 +122,14 @@ class Configuration:
     profile_lists: List[ProfileList]
     user_options: List[UserOptions]
 
+    # Specify the default value of each `kubespawner_override` key.
+    #
+    # All options in the profile lists must specify the same set of keys
+    # because the spawner does not reset its configuration between server
+    # launches.
+
+    kubespawner_override_defaults: Dict[str, Any]
+
 
 # --------------------------------------------------------------------------
 
@@ -141,6 +149,7 @@ def options_form(spawner) -> str:
     ## Reference: https://discourse.jupyter.org/t/tailoring-spawn-options-and-server-configuration-to-certain-users/8449
 
     config = get_config()
+    defaults = config.kubespawner_override_defaults
     person = comanage.get_person(spawner.userdata)
 
     if person:
@@ -150,6 +159,10 @@ def options_form(spawner) -> str:
             if groups.intersection(set(person.groups)) or not groups:
                 for name in options.profile_lists:
                     if pl := get_profile_list(config, name):
+                        for server in pl.spec:
+                            server.setdefault("kubespawner_override", {})
+                            for key, val in defaults.items():
+                                server["kubespawner_override"].setdefault(key, val)
                         spawner.profile_list.extend(pl.spec)
 
     return spawner._options_form_default()  # type: ignore[no-any-return]
@@ -205,7 +218,9 @@ def get_config() -> Configuration:
     try:
         config = parsing.load_yaml(KUBESPAWNER_CONFIG, Configuration)
     except FileNotFoundError:
-        config = Configuration(patch_lists=[], profile_lists=[], user_options=[])
+        config = Configuration(
+            patch_lists=[], profile_lists=[], user_options=[], kubespawner_override_defaults={}
+        )
 
     return config
 

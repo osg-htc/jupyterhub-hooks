@@ -41,7 +41,7 @@ sqlite_cache = true
 
 [tool.poetry]
 name = "osg_jupyter"
-version = "2.0.0rc1"
+version = "2.0.0rc2"
 description = "OSG's libraries for customizing Jupyter"
 license = "Apache-2.0"
 authors = ["Brian Aydemir <baydemir@morgridge.org>"]
