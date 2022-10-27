@@ -153,6 +153,8 @@ def options_form(spawner) -> str:
     person = comanage.get_person(spawner.userdata)
 
     if person:
+        spawner.profile_list = []
+
         for options in config.user_options:
             groups = set(options.groups)
 
