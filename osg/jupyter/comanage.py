@@ -65,6 +65,13 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
 
             person = make_person(oidc_sub, conn.entries)
 
+    # If this person does not exist in COmanage, or if they exist but we
+    # cannot make sense of the information in LDAP, then treat them as if
+    # they are a member of no groups.
+
+    if not person and oidc_sub:
+        person = COmanagePerson(oidc_sub, groups=[])
+
     return person
 
 
