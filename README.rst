@@ -24,8 +24,8 @@ In most cases, replace ``<ref>`` with the `tag for a specific version`_::
 .. _tag for a specific version: https://github.com/brianaydemir/osg-jupyter/tags
 
 
-KubeSpawner Configuration
--------------------------
+Configuration
+-------------
 
 The default location for the configuration file is ``/etc/osg/jupyterhub_kubespawner.yaml``.
 
