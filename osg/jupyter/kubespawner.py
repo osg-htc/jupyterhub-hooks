@@ -48,7 +48,7 @@ class PatchList:
     A patch operation consists of:
 
       - `path`: Slash-delimited, rooted at either "pod" or "notebook"
-      - `op`: Either "append", "extend", "prepend", or "set"
+      - `op`: Either "append", "extend", "prepend", "set", or "merge-keys"
       - `value`: A scalar, a list of values, or a dictionary
 
     String values support substitutions of information about the user for
@@ -300,6 +300,13 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
         getattr(loc, path_parts[-1]).insert(0, value)
     elif op == "set":
         setattr(loc, path_parts[-1], value)
+    elif op == "merge-keys":
+        if current := getattr(loc, path_parts[-1]):
+            for k, v in patch["value"].items():
+                if k != "_":
+                    setattr(current, k, build_value(v, user))
+        else:
+            setattr(loc, path_parts[-1], value)
     else:
         raise RuntimeError(f"Not a valid patch op: {op}")
 
