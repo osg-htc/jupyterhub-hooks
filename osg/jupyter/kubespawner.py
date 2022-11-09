@@ -124,9 +124,9 @@ class Configuration:
 
     # Specify the default value of each `kubespawner_override` key.
     #
-    # All options in the profile lists must specify the same set of keys
-    # because the spawner does not reset its configuration between server
-    # launches.
+    # Each option in each profile list must specify the same set of
+    # override keys because the spawner does not reset its configuration
+    # between server launches.
 
     kubespawner_override_defaults: Dict[str, Any]
 
