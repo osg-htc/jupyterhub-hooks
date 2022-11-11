@@ -18,10 +18,10 @@ __all__ = [
     "get_person",
 ]
 
-LDAP_URL = os.environ["_comanage_LDAP_URL"]
-LDAP_PEOPLE_BASE_DN = os.environ["_comanage_LDAP_PEOPLE_BASE_DN"]
-LDAP_USERNAME = os.environ["_comanage_LDAP_USERNAME"]
-LDAP_PASSWORD = os.environ["_comanage_LDAP_PASSWORD"]
+LDAP_URL = os.environ.get("_comanage_LDAP_URL", "")
+LDAP_PEOPLE_BASE_DN = os.environ.get("_comanage_LDAP_PEOPLE_BASE_DN", "")
+LDAP_USERNAME = os.environ.get("_comanage_LDAP_USERNAME", "")
+LDAP_PASSWORD = os.environ.get("_comanage_LDAP_PASSWORD", "")
 
 
 @dataclasses.dataclass

@@ -29,9 +29,9 @@ KUBESPAWNER_CONFIG = pathlib.Path(
     os.environ.get("_osg_JUPYTERHUB_KUBESPAWNER_CONFIG", "/etc/osg/jupyterhub_kubespawner.yaml")
 )
 
-CONDOR_CONDOR_HOST = os.environ["_condor_CONDOR_HOST"]
-CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ["_condor_SEC_TOKEN_ISSUER_KEY"]
-CONDOR_UID_DOMAIN = os.environ["_condor_UID_DOMAIN"]
+CONDOR_CONDOR_HOST = os.environ.get("_condor_CONDOR_HOST", "")
+CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ.get("_condor_SEC_TOKEN_ISSUER_KEY", "")
+CONDOR_UID_DOMAIN = os.environ.get("_condor_UID_DOMAIN", "")
 
 NOTEBOOK_CONTAINER_NAME = "notebook"
 
