@@ -65,7 +65,10 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
 
     if oidc_sub and not person:
         if username and uid and gid:
-            ospool_person = OSPoolPerson(username, uid, gid)
+            try:
+                ospool_person = OSPoolPerson(username, int(uid), int(gid))
+            except ValueError:
+                ospool_person = None
         else:
             ospool_person = None
         person = COmanagePerson(oidc_sub, groups or [], ospool_person)
