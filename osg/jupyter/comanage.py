@@ -51,26 +51,34 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
     Returns the COmanage person for the given OIDC "sub" claim.
     """
 
-    oidc_sub = oidc_userinfo.get("sub", None)
-    ldap_attributes = ["isMemberOf", "voPersonApplicationUID", "uidNumber", "gidNumber"]
     person = None
 
-    if not person and oidc_sub:
+    # NOTE (baydemir): We require that the OIDC client be configured in
+    # COmanage to return the claims required below. The code that queries
+    # LDAP is left here in case we ever need to resurrect that flow.
+
+    oidc_sub = oidc_userinfo.get("sub")
+    groups = oidc_userinfo.get("groups")
+    username = oidc_userinfo.get("unix_username")
+    uid = oidc_userinfo.get("unix_uid")
+    gid = oidc_userinfo.get("unix_gid")
+
+    if oidc_sub and not person:
+        if username and uid and gid:
+            ospool_person = OSPoolPerson(username, uid, gid)
+        else:
+            ospool_person = None
+        person = COmanagePerson(oidc_sub, groups or [], ospool_person)
+
+    if oidc_sub and not person:
         with ldap_connection() as conn:
             conn.search(
                 LDAP_PEOPLE_BASE_DN,
                 f"(uid={oidc_sub})",
-                attributes=ldap_attributes,
+                attributes=["isMemberOf", "voPersonApplicationUID", "uidNumber", "gidNumber"],
             )
 
             person = make_person(oidc_sub, conn.entries)
-
-    # If this person does not exist in COmanage, or if they exist but we
-    # cannot make sense of the information in LDAP, then treat them as if
-    # they are a member of no groups.
-
-    if not person and oidc_sub:
-        person = COmanagePerson(oidc_sub, groups=[])
 
     return person
 
