@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 KUBESPAWNER_CONFIG = pathlib.Path(
-    os.environ.get("_osg_JUPYTERHUB_KUBESPAWNER_CONFIG", "/etc/osg/jupyterhub_kubespawner.yaml")
+    os.environ.get("_osg_KUBESPAWNER_HOOKS_CONFIG", "/etc/osg/kubespawner_hooks_config.yaml")
 )
 
 CONDOR_CONDOR_HOST = os.environ.get("_condor_CONDOR_HOST", "")
