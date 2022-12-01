@@ -304,10 +304,7 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
         if current := getattr(loc, path_parts[-1]):
             for k, v in patch["value"].items():
                 if k != "_":
-                    if isinstance(current, dict):
-                        current[k] = build_value(v, user)
-                    else:
-                        setattr(current, k, build_value(v, user))
+                    setattr(current, k, build_value(v, user))
         else:
             setattr(loc, path_parts[-1], value)
     else:
