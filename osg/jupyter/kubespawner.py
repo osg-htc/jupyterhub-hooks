@@ -289,15 +289,26 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
     else:
         raise RuntimeError(f"Not a valid patch path: {path}")
 
+    #
+    # FIXME: Assumptions: The components of the patch's path exist
+    #
+    # We rely on the patch itself to tell us how to construct values,
+    # so if some component does not exist, there is generally not much
+    # we can do about it.
+    #
+
     for p in path_parts[1:-1]:
         loc = getattr(loc, p)
 
-    if op == "append":
-        getattr(loc, path_parts[-1]).append(value)
-    elif op == "extend":
-        getattr(loc, path_parts[-1]).extend(value)
-    elif op == "prepend":
-        getattr(loc, path_parts[-1]).insert(0, value)
+    if op in ["append", "extend", "prepend"]:
+        if getattr(loc, path_parts[-1]) is None:
+            setattr(loc, path_parts[-1], [])
+        if op == "append":
+            getattr(loc, path_parts[-1]).append(value)
+        elif op == "extend":
+            getattr(loc, path_parts[-1]).extend(value)
+        elif op == "prepend":
+            getattr(loc, path_parts[-1]).insert(0, value)
     elif op == "set":
         setattr(loc, path_parts[-1], value)
     elif op == "merge-keys":
