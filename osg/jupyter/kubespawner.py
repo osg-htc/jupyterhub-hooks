@@ -9,7 +9,6 @@ class `Configuration`.
 import dataclasses
 import os
 import pathlib
-import re
 from typing import Any, Dict, List, Literal, Optional
 
 import kubernetes.client as k8s  # type: ignore[import]
@@ -48,7 +47,7 @@ class PatchList:
     A patch operation consists of:
 
       - `path`: Slash-delimited, rooted at either "pod" or "notebook"
-      - `op`: Either "append", "extend", "prepend", "set", or "merge-keys"
+      - `op`: Either "append", "extend", "prepend", "set", "set-default", or "merge-keys"
       - `value`: A scalar, a list of values, or a dictionary
 
     String values support substitutions of information about the user for
@@ -302,6 +301,7 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
 
     if op in ["append", "extend", "prepend"]:
         if getattr(loc, path_parts[-1]) is None:
+            # Ensure that we have a list on which to operate.
             setattr(loc, path_parts[-1], [])
         if op == "append":
             getattr(loc, path_parts[-1]).append(value)
@@ -311,13 +311,20 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
             getattr(loc, path_parts[-1]).insert(0, value)
     elif op == "set":
         setattr(loc, path_parts[-1], value)
+    elif op == "set-default":
+        if not hasattr(loc, path_parts[-1]) or getattr(loc, path_parts[-1]) is None:
+            setattr(loc, path_parts[-1], value)
     elif op == "merge-keys":
-        if current := getattr(loc, path_parts[-1]):
+        if not hasattr(loc, path_parts[-1]) or getattr(loc, path_parts[-1]) is None:
+            setattr(loc, path_parts[-1], value)
+        else:
+            current = getattr(loc, path_parts[-1])
             for k, v in patch["value"].items():
                 if k != "_":
-                    setattr(current, k, build_value(v, user))
-        else:
-            setattr(loc, path_parts[-1], value)
+                    if isinstance(current, dict):
+                        current[k] = build_value(v, user)
+                    else:
+                        setattr(current, k, build_value(v, user))
     else:
         raise RuntimeError(f"Not a valid patch op: {op}")
 
@@ -379,18 +386,3 @@ def get_notebook_container(pod: k8s.V1Pod) -> k8s.V1Container:
             return c
 
     raise RuntimeError("Failed to locate the pod's notebook container")
-
-
-def is_pod_modifiable(config, pod: k8s.V1Pod) -> bool:
-    """
-    Determines whether the pod should be patched according to the config.
-    """
-
-    notebook = get_notebook_container(pod)
-
-    for rule in config.get("exceptions", []):
-        if "image" in rule:
-            if re.search(rule["image"], notebook.image):
-                return False
-
-    return True
