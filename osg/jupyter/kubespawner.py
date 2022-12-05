@@ -108,7 +108,7 @@ class UserOptions:
 
     groups: List[str]
     profile_lists: List[str]
-    patch_lists: List[str] = dataclasses.field(default_factory=list)
+    patch_lists: List[str]
 
 
 @dataclasses.dataclass
