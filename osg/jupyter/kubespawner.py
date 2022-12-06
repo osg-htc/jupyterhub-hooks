@@ -294,9 +294,9 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
     #
     # FIXME: Assumptions: The components of the patch's path exist
     #
-    # We rely on the patch itself to tell us how to construct values,
-    # so if some component does not exist, there is generally not much
-    # we can do about it.
+    # We rely on the patch itself to tell us how to construct values, so if
+    # some component does not exist, then there is generally not much we can
+    # do about it.
     #
 
     for p in path_parts[1:-1]:
@@ -315,10 +315,10 @@ def apply_patch(patch, pod: k8s.V1Pod, user: Optional[comanage.OSPoolPerson] = N
     elif op == "set":
         setattr(loc, path_parts[-1], value)
     elif op == "set-default":
-        if not hasattr(loc, path_parts[-1]) or getattr(loc, path_parts[-1]) is None:
+        if getattr(loc, path_parts[-1]) is None:
             setattr(loc, path_parts[-1], value)
     elif op == "merge-keys":
-        if not hasattr(loc, path_parts[-1]) or getattr(loc, path_parts[-1]) is None:
+        if getattr(loc, path_parts[-1]) is None:
             setattr(loc, path_parts[-1], value)
         else:
             current = getattr(loc, path_parts[-1])
