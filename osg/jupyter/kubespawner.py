@@ -200,6 +200,9 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
                 for name in options.patch_lists:
                     if pl := get_patch_list(config, name):
                         for patch in pl.spec:
+                            spawner.log.info(
+                                f"{spawner.user.name}: Applying patch: {pl.name}: {patch['path']}"
+                            )
                             apply_patch(patch, pod, person.ospool)
 
         if person.ospool:
