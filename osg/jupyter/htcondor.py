@@ -10,9 +10,9 @@ import pathlib
 import time
 import uuid
 
-import jwt  # type: ignore[import]
-from cryptography.hazmat.primitives.hashes import SHA256  # type: ignore[import]
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF  # type: ignore[import]
+import jwt
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 __all__ = ["create_token"]
 
@@ -25,6 +25,7 @@ def unscramble(buf: bytes) -> bytes:
     """
     Undoes HTCondor's password scrambling.
     """
+
     deadbeef = [0xDE, 0xAD, 0xBE, 0xEF]
 
     return bytes(a ^ b for (a, b) in zip(buf, itertools.cycle(deadbeef)))
@@ -44,7 +45,7 @@ def derive_key(password: bytes) -> bytes:
         salt=b"htcondor",
         info=b"master jwt",
     )
-    return hkdf.derive(password)  # type: ignore[no-any-return]
+    return hkdf.derive(password)
 
 
 def create_token(
@@ -75,10 +76,12 @@ def create_token(
     if kid == "POOL":
         password += password
 
+    # NOTE: The PyJWT API indicates that `key` should be a `str`, but the
+    # API will accept `bytes` because that's what it actually needs for the
+    # HMAC algorithm.
+
     key = derive_key(password)
 
-    token = jwt.encode(payload, key, headers={"kid": kid}, algorithm="HS256")
+    token = jwt.encode(payload, key, headers={"kid": kid}, algorithm="HS256")  # type: ignore[arg-type]
 
-    if isinstance(token, bytes):  # for older versions of PyJWT
-        return token.decode()
-    return token  # type: ignore[no-any-return]
+    return token

@@ -1,7 +1,6 @@
 """
-Query OSG's COmanage instance.
+Query OSG's COmanage infrastructure.
 """
-# FIXME: Assumptions: OSG's CILogon and COmanage setup
 
 import contextlib
 import dataclasses
@@ -53,9 +52,9 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
 
     person = None
 
-    # NOTE (baydemir): We require that the OIDC client be configured in
-    # COmanage to return the claims required below. The code that queries
-    # LDAP is left here in case we ever need to resurrect that flow.
+    # NOTE: The OIDC Client in COmanage must be configured to return the
+    # claims below so that we can avoid querying LDAP, which will block the
+    # current thread when using the `ldap3` library.
 
     oidc_sub = oidc_userinfo.get("sub")
     groups = oidc_userinfo.get("groups")
@@ -72,6 +71,9 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
         else:
             ospool_person = None
         person = COmanagePerson(oidc_sub, groups or [], ospool_person)
+
+    # The code below for querying LDAP is left here in case the flow ever
+    # needs to be resurrected.
 
     if oidc_sub and not person:
         with ldap_connection() as conn:
