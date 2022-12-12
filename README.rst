@@ -15,11 +15,11 @@ Installation
 Use ``pip`` to install this package into the same Python environment as
 JupyterHub::
 
-    python3 -m pip install git+https://github.com/brianaydemir/osg-jupyter.git@<ref>
+    python3 -m pip install git+https://github.com/osg-htc/jupyterhub-hooks.git@<ref>
 
 Replace ``<ref>`` with a tag_ or any other Git ref into this repository.
 
-.. _tag: https://github.com/brianaydemir/osg-jupyter/tags
+.. _tag: https://github.com/osg-htc/jupyterhub-hooks/tags
 
 
 Configuration

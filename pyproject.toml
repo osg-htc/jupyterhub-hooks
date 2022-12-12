@@ -45,7 +45,7 @@ version = "5.0.0rc1"
 description = "KubeSpawner hooks for OSG's JupyterHub instance"
 license = "Apache-2.0"
 authors = ["Brian Aydemir <baydemir@morgridge.org>"]
-repository = "https://github.com/brianaydemir/osg-jupyter"
+repository = "https://github.com/osg-htc/jupyterhub-hooks"
 packages = [{ include = "osg" }]
 
 
