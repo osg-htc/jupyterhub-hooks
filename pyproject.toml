@@ -40,9 +40,9 @@ sqlite_cache = true
 
 
 [tool.poetry]
-name = "osg_jupyter"
-version = "4.0.1"
-description = "OSG's libraries for customizing Jupyter"
+name = "osg_jupyterhub_hooks"
+version = "5.0.0rc1"
+description = "KubeSpawner hooks for OSG's JupyterHub instance"
 license = "Apache-2.0"
 authors = ["Brian Aydemir <baydemir@morgridge.org>"]
 repository = "https://github.com/brianaydemir/osg-jupyter"

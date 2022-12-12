@@ -1,32 +1,64 @@
-osg-jupyter
-===========
+KubeSpawner Hooks for OSG's JupyterHub Instance
+===============================================
 
-This Python package provides `KubeSpawner`_ hooks that can be used to
-customize single-user notebook servers in non-trivial ways. It is intended
-to support `OSG`_'s customizations for `OSPool`_ users.
+This Python package provides KubeSpawner_ hooks for customizing a user's
+server options based on the groups that they belong to.
 
-.. _KubeSpawner: https://jupyterhub-kubespawner.readthedocs.io/en/latest/
-.. _OSG: https://osg-htc.org/
-.. _OSPool: https://osg-htc.org/services/open_science_pool.html
+These hooks are specific to OSG's COmanage infrastructure and the OSPool.
+
+.. _KubeSpawner: https://github.com/jupyterhub/kubespawner
 
 
 Installation
 ------------
 
-Use ``pip`` to install this package directly from this repository::
+Use ``pip`` to install this package into the same Python environment as
+JupyterHub::
 
     python3 -m pip install git+https://github.com/brianaydemir/osg-jupyter.git@<ref>
 
-In most cases, replace ``<ref>`` with the `tag for a specific version`_::
+Replace ``<ref>`` with a tag_ or any other Git ref into this repository.
 
-    python3 -m pip install git+https://github.com/brianaydemir/osg-jupyter.git@1.0.0
-
-.. _tag for a specific version: https://github.com/brianaydemir/osg-jupyter/tags
+.. _tag: https://github.com/brianaydemir/osg-jupyter/tags
 
 
 Configuration
 -------------
 
-The default location for the configuration file is ``/etc/osg/jupyterhub_kubespawner.yaml``.
+Via JupyterHub's configuration, configure ``KubeSpawner`` to use the hooks::
 
-Its structure is defined by the class ``Configuration`` in `<osg/jupyter/kubespawner.py>`_.
+    from osg.jupyterhub import kubespawner_hooks
+    c.KubeSpawner.auth_state_hook = kubespawner_hooks.auth_state_hook
+    c.KubeSpawner.options_form = kubespawner_hooks.options_form
+    c.KubeSpawner.modify_pod_hook = kubespawner_hooks.modify_pod_hook
+
+The hooks are configured via a YAML file::
+
+    /etc/osg/kubespawner_hooks_config.yaml
+
+The structure is determined by the class ``Configuration`` in
+`<osg/jupyterhub/kubespawner_hooks.py>`_.
+
+
+Development
+-----------
+
+This project uses Poetry_ to manage its dependencies:
+
+1. Install Poetry.
+
+2. Run ``poetry update`` to install dependencies.
+
+The dependencies replicate the environment provided by a particular version
+of Z2JH_'s ``k8s-hub`` image. (Refer to the comments in `<pyproject.toml>`_.)
+
+This project uses pre-commit_ to ensure commits meet minimum requirements:
+
+1. Run ``poetry run pre-commit install`` to install the Git hooks.
+
+The `<Makefile>`_ provides ``reformat`` and ``lint`` targets for running
+various standard tools (``isort``, ``black``, ``pylint``, etc.).
+
+.. _Poetry: https://python-poetry.org/
+.. _pre-commit: https://pre-commit.com/
+.. _Z2JH: https://z2jh.jupyter.org/

@@ -15,8 +15,8 @@ from typing import Any, Dict, Iterator, List, Optional
 import baydemir.parsing
 import kubernetes.client as k8s  # type: ignore[import]
 
-from osg.jupyter import htcondor  # not to be confused with the Python bindings
-from osg.jupyter import comanage
+from osg.jupyterhub_util import htcondor  # not to be confused with the Python bindings
+from osg.jupyterhub_util import comanage
 
 __all__ = [
     "auth_state_hook",

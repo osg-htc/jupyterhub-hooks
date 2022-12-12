@@ -72,8 +72,8 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
             ospool_person = None
         person = COmanagePerson(oidc_sub, groups or [], ospool_person)
 
-    # The code below for querying LDAP is left here in case the flow ever
-    # needs to be resurrected.
+    # NOTE: The LDAP query below is dead code but left here in case the flow
+    # ever needs to be resurrected.
 
     if oidc_sub and not person:
         with ldap_connection() as conn:

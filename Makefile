@@ -4,7 +4,7 @@
 .PHONY: all build clean lint reformat
 
 PY_FILES := osg/
-PY_WHEEL_BASENAME := osg_jupyter
+PY_WHEEL_BASENAME := osg_jupyterhub_hooks
 
 all: reformat lint build
 
