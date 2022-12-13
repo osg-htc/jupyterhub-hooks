@@ -92,6 +92,10 @@ def options_form(spawner) -> str:
     ## Reference: https://discourse.jupyter.org/t/tailoring-spawn-options-and-server-configuration-to-certain-users/8449
 
     if person := comanage.get_person(spawner.userdata):
+        spawner.log.info(
+            f"Building options form for: sub = {person.sub}, groups = {person.groups}"
+        )
+
         config = get_config()
         spawner.profile_list = []
 
