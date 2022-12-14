@@ -20,6 +20,12 @@ PASSWORD_FILE = pathlib.Path(
     os.environ.get("_condor_SEC_PASSWORD_FILE", "/etc/condor/passwords.d/POOL")
 )
 
+# Despite starting with "_condor", this environment variable does not
+# refer to an actual HTCondor configuration setting.
+DEFAULT_IDTOKEN_SCOPE = os.environ.get(
+    "_condor_DEFAULT_IDTOKEN_SCOPE", "condor:\\/READ condor:\\/WRITE"
+)
+
 
 def unscramble(buf: bytes) -> bytes:
     """
@@ -54,7 +60,7 @@ def create_token(
     sub: str,
     lifetime: int = 60 * 60 * 24,
     kid: str = "POOL",
-    scope: str = "condor:/READ condor:/WRITE",
+    scope: str = DEFAULT_IDTOKEN_SCOPE,
 ) -> str:
     """
     Creates an HTCondor IDTOKEN with the specified characteristics.
