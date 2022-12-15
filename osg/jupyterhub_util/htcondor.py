@@ -20,10 +20,10 @@ PASSWORD_FILE = pathlib.Path(
     os.environ.get("_condor_SEC_PASSWORD_FILE", "/etc/condor/passwords.d/POOL")
 )
 
-# Despite starting with "_condor", this environment variable does not
-# refer to an actual HTCondor configuration setting.
+# Despite starting with "_condor", this environment variable does
+# not refer to an actual HTCondor configuration setting.
 DEFAULT_IDTOKEN_SCOPE = os.environ.get(
-    "_condor_DEFAULT_IDTOKEN_SCOPE", "condor:\\/READ condor:\\/WRITE"
+    "_condor_DEFAULT_IDTOKEN_SCOPE", "condor:/READ condor:/WRITE"
 )
 
 
