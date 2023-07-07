@@ -80,7 +80,12 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
             conn.search(
                 LDAP_PEOPLE_BASE_DN,
                 f"(uid={oidc_sub})",
-                attributes=["isMemberOf", "voPersonApplicationUID", "uidNumber", "gidNumber"],
+                attributes=[
+                    "isMemberOf",
+                    "voPersonApplicationUID",
+                    "uidNumber",
+                    "gidNumber",
+                ],
             )
 
             person = make_person(oidc_sub, conn.entries)

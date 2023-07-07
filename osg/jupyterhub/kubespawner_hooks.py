@@ -13,9 +13,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 import baydemir.parsing
-import kubernetes.client as k8s  # type: ignore[import]
+import kubernetes_asyncio.client as k8s  # type: ignore[import]
 
-from osg.jupyterhub_util import htcondor  # not to be confused with the Python bindings
+from osg.jupyterhub_util import (
+    htcondor,  # not to be confused with the Python bindings
+)
 from osg.jupyterhub_util import comanage
 
 __all__ = [
@@ -25,7 +27,10 @@ __all__ = [
 ]
 
 KUBESPAWNER_CONFIG = Path(
-    os.environ.get("_osg_KUBESPAWNER_HOOKS_CONFIG", "/etc/osg/kubespawner_hooks_config.yaml")
+    os.environ.get(
+        "_osg_KUBESPAWNER_HOOKS_CONFIG",
+        "/etc/osg/kubespawner_hooks_config.yaml",
+    )
 )
 
 CONDOR_CONDOR_HOST = os.environ.get("_condor_CONDOR_HOST", "")
@@ -65,13 +70,18 @@ class ProfileList:
 class Configuration:
     """
     Defines the structure of the configuration file used by the hooks below.
+
+    This configuration defines:
+
+      1. The server options that a user should see.
+      2. How to configure each of those server options.
     """
 
     server_defaults: Dict[str, Any]
 
-    server_overrides: Dict[str, KubespawnerOverride]
-
     server_lists: List[ProfileList]
+
+    server_overrides: Dict[str, KubespawnerOverride]
 
 
 # --------------------------------------------------------------------------
@@ -106,8 +116,12 @@ def options_form(spawner) -> str:
 
             for key in server_includes:
                 override = config.server_overrides[key]
-                if not override.groups or set(override.groups).intersection(person.groups):
-                    merge_override(composite_override, override.override, person.ospool)
+                if not override.groups or set(override.groups).intersection(
+                    person.groups
+                ):
+                    merge_override(
+                        composite_override, override.override, person.ospool
+                    )
             merge_override(composite_override, server_override, person.ospool)
 
             server["kubespawner_override"] = composite_override
@@ -142,7 +156,9 @@ def get_config() -> Configuration:
     try:
         config = baydemir.parsing.load_yaml(KUBESPAWNER_CONFIG, Configuration)
     except FileNotFoundError:
-        config = Configuration(server_defaults={}, server_overrides={}, server_lists=[])
+        config = Configuration(
+            server_defaults={}, server_overrides={}, server_lists=[]
+        )
 
     return config
 
@@ -199,9 +215,7 @@ def build_value(raw_value: Any, user: Optional[comanage.OSPoolPerson]) -> Any:
     """
 
     if isinstance(raw_value, str):
-
         if user:
-
             ## The user's UID and GID should yield integers instead of a strings.
 
             if raw_value == "{user.uid}":
@@ -219,7 +233,6 @@ def build_value(raw_value: Any, user: Optional[comanage.OSPoolPerson]) -> Any:
         return raw_value
 
     if isinstance(raw_value, dict):
-
         ## The value could be an API object or a built-in dictionary.
 
         if "_" in raw_value:
@@ -241,7 +254,9 @@ def build_value(raw_value: Any, user: Optional[comanage.OSPoolPerson]) -> Any:
 
 
 def merge_override(
-    target: Dict[str, Any], source: Dict[str, Any], user: Optional[comanage.OSPoolPerson]
+    target: Dict[str, Any],
+    source: Dict[str, Any],
+    user: Optional[comanage.OSPoolPerson],
 ) -> None:
     """
     Merges one set of `kubespawner_override` keys into another.

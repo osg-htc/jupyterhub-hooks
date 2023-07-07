@@ -1,15 +1,8 @@
 ## Temporary files created by vim.
 *.swp
 
-## Cache directories created by the eponymous tools.
-/.mypy/
-/.pylint/
-
-## Local configuration file for pyenv.
+## Configuration file for pyenv.
 /.python-version
 
-## Local configuration lock file for Poetry.
-/poetry.lock
-
-## Build artifacts.
-/dist
+## Build artifacts created by poetry.
+/dist/
