@@ -36,8 +36,7 @@ The hooks are configured via a YAML file::
 
     /etc/osg/kubespawner_hooks_config.yaml
 
-The structure is determined by the class ``Configuration`` in
-`<osg/jupyterhub/kubespawner_hooks.py>`_.
+The structure is determined by the class ``Configuration`` in `<osg/jupyterhub/kubespawner_hooks.py>`_.
 
 
 Development
