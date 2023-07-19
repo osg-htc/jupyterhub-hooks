@@ -15,9 +15,7 @@ from typing import Any, Dict, Iterator, List, Optional
 import baydemir.parsing
 import kubernetes_asyncio.client as k8s  # type: ignore[import]
 
-from osg.jupyterhub_util import (
-    htcondor,  # not to be confused with the Python bindings
-)
+from osg.jupyterhub_util import htcondor  # not to be confused with the Python bindings
 from osg.jupyterhub_util import comanage
 
 __all__ = [
@@ -26,16 +24,12 @@ __all__ = [
     "options_form",
 ]
 
-KUBESPAWNER_CONFIG = Path(
-    os.environ.get(
-        "_osg_KUBESPAWNER_HOOKS_CONFIG",
-        "/etc/osg/kubespawner_hooks_config.yaml",
-    )
-)
+KUBESPAWNER_CONFIG = Path("/etc/osg/kubespawner_hooks_config.yaml")
 
-CONDOR_CONDOR_HOST = os.environ.get("_condor_CONDOR_HOST", "")
-CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ.get("_condor_SEC_TOKEN_ISSUER_KEY", "")
-CONDOR_UID_DOMAIN = os.environ.get("_condor_UID_DOMAIN", "")
+CONDOR_CONDOR_HOST = os.environ.get("_condor_CONDOR_HOST")
+CONDOR_SEC_PASSWORD_FILE = os.environ.get("_condor_SEC_PASSWORD_FILE")
+CONDOR_SEC_TOKEN_ISSUER_KEY = os.environ.get("_condor_SEC_TOKEN_ISSUER_KEY")
+CONDOR_UID_DOMAIN = os.environ.get("_condor_UID_DOMAIN")
 
 NOTEBOOK_CONTAINER_NAME = "notebook"
 
@@ -116,12 +110,8 @@ def options_form(spawner) -> str:
 
             for key in server_includes:
                 override = config.server_overrides[key]
-                if not override.groups or set(override.groups).intersection(
-                    person.groups
-                ):
-                    merge_override(
-                        composite_override, override.override, person.ospool
-                    )
+                if not override.groups or set(override.groups).intersection(person.groups):
+                    merge_override(composite_override, override.override, person.ospool)
             merge_override(composite_override, server_override, person.ospool)
 
             server["kubespawner_override"] = composite_override
@@ -137,10 +127,24 @@ def modify_pod_hook(spawner, pod: k8s.V1Pod) -> k8s.V1Pod:
     Applies only to OSPool users.
     """
 
+    notebook = get_notebook_container(pod)
     person = comanage.get_person(spawner.userdata)
 
-    if person and person.ospool:
-        add_htcondor_idtoken(pod, person.ospool)
+    if (
+        person
+        and person.ospool
+        and CONDOR_CONDOR_HOST
+        and CONDOR_SEC_PASSWORD_FILE
+        and CONDOR_SEC_TOKEN_ISSUER_KEY
+        and CONDOR_UID_DOMAIN
+    ):
+        password = htcondor.read_password(CONDOR_SEC_PASSWORD_FILE)
+        iss = CONDOR_CONDOR_HOST
+        sub = f"{person.ospool.username}@{CONDOR_UID_DOMAIN}"
+        kid = CONDOR_SEC_TOKEN_ISSUER_KEY
+        token = htcondor.create_token(password=password, iss=iss, sub=sub, kid=kid)
+
+        notebook.env.append(k8s.V1EnvVar(name="_osg_HTCONDOR_IDTOKEN", value=token))
 
     return pod
 
@@ -156,9 +160,7 @@ def get_config() -> Configuration:
     try:
         config = baydemir.parsing.load_yaml(KUBESPAWNER_CONFIG, Configuration)
     except FileNotFoundError:
-        config = Configuration(
-            server_defaults={}, server_overrides={}, server_lists=[]
-        )
+        config = Configuration(server_defaults={}, server_overrides={}, server_lists=[])
 
     return config
 
@@ -186,27 +188,6 @@ def get_servers(
         if not spec.groups or set(spec.groups).intersection(person.groups):
             for server in spec.servers:
                 yield server
-
-
-def add_htcondor_idtoken(pod: k8s.V1Pod, user: comanage.OSPoolPerson) -> None:
-    """
-    Adds an HTCondor IDTOKEN to the notebook container's environment.
-    """
-
-    iss = CONDOR_CONDOR_HOST
-    sub = f"{user.username}@{CONDOR_UID_DOMAIN}"
-    kid = CONDOR_SEC_TOKEN_ISSUER_KEY
-
-    token = htcondor.create_token(iss=iss, sub=sub, kid=kid)
-
-    notebook = get_notebook_container(pod)
-
-    notebook.env.append(
-        k8s.V1EnvVar(
-            name="_osg_HTCONDOR_IDTOKEN",
-            value=token,
-        )
-    )
 
 
 def build_value(raw_value: Any, user: Optional[comanage.OSPoolPerson]) -> Any:
