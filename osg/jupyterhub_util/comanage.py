@@ -9,6 +9,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import ldap3  # type: ignore[import]
+import ldap3.utils.conv  # type: ignore[import]
 
 __all__ = [
     "COmanagePerson",
@@ -16,11 +17,6 @@ __all__ = [
     #
     "get_person",
 ]
-
-LDAP_URL = os.environ.get("_comanage_LDAP_URL", "")
-LDAP_PEOPLE_BASE_DN = os.environ.get("_comanage_LDAP_PEOPLE_BASE_DN", "")
-LDAP_USERNAME = os.environ.get("_comanage_LDAP_USERNAME", "")
-LDAP_PASSWORD = os.environ.get("_comanage_LDAP_PASSWORD", "")
 
 
 @dataclasses.dataclass
@@ -39,9 +35,12 @@ class COmanagePerson:
 
 @contextlib.contextmanager
 def ldap_connection():
-    with ldap3.Connection(
-        ldap3.Server(LDAP_URL, get_info=ldap3.ALL), LDAP_USERNAME, LDAP_PASSWORD
-    ) as conn:
+    url = os.environ["_comanage_LDAP_URL"]
+    username = os.environ["_comanage_LDAP_USERNAME"]
+    password = os.environ["_comanage_LDAP_PASSWORD"]
+    server = ldap3.Server(url, get_info=ldap3.ALL)
+
+    with ldap3.Connection(server, username, password) as conn:
         yield conn
 
 
@@ -76,49 +75,33 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
     # ever needs to be resurrected.
 
     if oidc_sub and not person:
+        base_dn = os.environ["_comanage_LDAP_BASE_DN"]
+        safe_oidc_sub = ldap3.utils.conv.escape_filter_chars(oidc_sub, encoding="utf-8")
+        search_filter = f"(uid={safe_oidc_sub})"
+        attributes = ["isMemberOf", "voPersonApplicationUID", "uidNumber", "gidNumber"]
+
         with ldap_connection() as conn:
-            conn.search(
-                LDAP_PEOPLE_BASE_DN,
-                f"(uid={oidc_sub})",
-                attributes=[
-                    "isMemberOf",
-                    "voPersonApplicationUID",
-                    "uidNumber",
-                    "gidNumber",
-                ],
-            )
+            conn.search(base_dn, search_filter, attributes=attributes)
 
-            person = make_person(oidc_sub, conn.entries)
+            if len(conn.entries) == 1:
+                attrs = conn.entries[0].entry_attributes_as_dict
 
-    return person
+                groups = attrs["isMemberOf"]
+                usernames = attrs["voPersonApplicationUID"]
+                uids = attrs["uidNumber"]
+                gids = attrs["gidNumber"]
 
+                if (
+                    "ospool-login" in groups
+                    and len(usernames) == 1
+                    and len(uids) == 1
+                    and len(gids) == 1
+                ):
+                    ospool_person = OSPoolPerson(usernames[0], uids[0], gids[0])
+                else:
+                    ospool_person = None
 
-def make_person(oidc_sub: str, entries) -> Optional[COmanagePerson]:
-    """
-    Returns a COmanage person based on the given list of LDAP entries.
-    """
-
-    person = None
-
-    if len(entries) == 1:
-        attrs = entries[0].entry_attributes_as_dict
-
-        groups = attrs["isMemberOf"]
-        usernames = attrs["voPersonApplicationUID"]
-        uids = attrs["uidNumber"]
-        gids = attrs["gidNumber"]
-
-        if (
-            "ospool-login" in groups
-            and len(usernames) == 1
-            and len(uids) == 1
-            and len(gids) == 1
-        ):
-            ospool_person = OSPoolPerson(usernames[0], uids[0], gids[0])
-        else:
-            ospool_person = None
-
-        person = COmanagePerson(oidc_sub, groups, ospool_person)
+                person = COmanagePerson(oidc_sub, groups, ospool_person)
 
     return person
 
@@ -133,7 +116,8 @@ def main() -> None:
     """
 
     with ldap_connection() as conn:
-        conn.search(LDAP_PEOPLE_BASE_DN, sys.argv[1], attributes=["*"])
+        base_dn = os.environ["_comanage_LDAP_BASE_DN"]
+        conn.search(base_dn, sys.argv[1], attributes=["*"])
         print(conn.entries)
 
 
