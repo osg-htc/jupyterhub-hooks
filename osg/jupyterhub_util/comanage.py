@@ -8,8 +8,8 @@ import os
 import sys
 from typing import Any, Dict, List, Optional
 
-import ldap3  # type: ignore[import]
-import ldap3.utils.conv  # type: ignore[import]
+import ldap3  # type: ignore[import-untyped]
+import ldap3.utils.conv  # type: ignore[import-untyped]
 
 __all__ = [
     "COmanagePerson",

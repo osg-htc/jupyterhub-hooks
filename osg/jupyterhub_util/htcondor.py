@@ -80,6 +80,6 @@ def create_token(
 
     key = derive_key(password)
 
-    token = jwt.encode(payload, key, headers={"kid": kid}, algorithm="HS256")  # type: ignore[arg-type]
+    token = jwt.encode(payload, key, headers={"kid": kid}, algorithm="HS256")
 
     return token

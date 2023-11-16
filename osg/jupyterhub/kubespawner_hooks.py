@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 import baydemir.parsing
-import kubernetes_asyncio.client as k8s  # type: ignore[import]
+import kubernetes_asyncio.client as k8s  # type: ignore[import-untyped]
 
 from osg.jupyterhub_util import htcondor  # not to be confused with the Python bindings
 from osg.jupyterhub_util import comanage
