@@ -3,21 +3,21 @@
 
 .PHONY: all build clean lint reformat
 
-PY_FILES := osg/
-PY_WHEEL_BASENAME := osg_jupyterhub_hooks
+PY_PACKAGE_SRC := osg/
+PY_PACKAGE_NAME := osg_jupyterhub_hooks
 
 all: reformat lint build
 
 #---------------------------------------------------------------------------
 
 reformat:
-	poetry run isort -q $(PY_FILES)
-	poetry run black -q $(PY_FILES)
+	poetry run isort -q $(PY_PACKAGE_SRC)
+	poetry run black -q $(PY_PACKAGE_SRC)
 
 lint:
-	-poetry run bandit -qr $(PY_FILES)
-	-poetry run mypy $(PY_FILES)
-	-poetry run pylint $(PY_FILES)
+	-poetry run bandit -qr $(PY_PACKAGE_SRC)
+	-poetry run mypy $(PY_PACKAGE_SRC)
+	-poetry run pylint $(PY_PACKAGE_SRC)
 
 requirements.txt: poetry.lock
 	poetry export > requirements.txt
@@ -29,6 +29,6 @@ build:
 
 clean:
 	rm -rf .mypy_cache/
-	rm -rf dist/$(PY_WHEEL_BASENAME)-*.tar.gz
-	rm -rf dist/$(PY_WHEEL_BASENAME)-*.whl
+	rm -rf dist/$(PY_PACKAGE_NAME)-*.tar.gz
+	rm -rf dist/$(PY_PACKAGE_NAME)-*.whl
 	-rmdir dist/
