@@ -95,27 +95,30 @@ def options_form(spawner) -> str:
     """
     ## Reference: https://discourse.jupyter.org/t/tailoring-spawn-options-and-server-configuration-to-certain-users/8449
 
-    if person := comanage.get_person(spawner.userdata):
-        person_as_dict = dataclasses.asdict(person)
+    person = comanage.get_person(spawner.userdata)
+    if not person:
+        person = comanage.COmanagePerson(sub="", groups=[])
 
-        spawner.log.info(f"Building options form for {person_as_dict!r}")
+    person_as_dict = dataclasses.asdict(person)
 
-        config = get_config()
-        spawner.profile_list = []
+    spawner.log.info(f"Building options form for {person_as_dict!r}")
 
-        for server in get_servers(config, person):
-            server_override = server.get("kubespawner_override", {})
-            server_includes = server_override.pop("include", [])
-            composite_override = copy.deepcopy(config.server_defaults)
+    config = get_config()
+    spawner.profile_list = []
 
-            for key in server_includes:
-                override = config.server_overrides[key]
-                if not override.groups or set(override.groups).intersection(person.groups):
-                    merge_override(composite_override, override.override, person.ospool)
-            merge_override(composite_override, server_override, person.ospool)
+    for server in get_servers(config, person):
+        server_override = server.get("kubespawner_override", {})
+        server_includes = server_override.pop("include", [])
+        composite_override = copy.deepcopy(config.server_defaults)
 
-            server["kubespawner_override"] = composite_override
-            spawner.profile_list.append(server)
+        for key in server_includes:
+            override = config.server_overrides[key]
+            if not override.groups or set(override.groups).intersection(person.groups):
+                merge_override(composite_override, override.override, person.ospool)
+        merge_override(composite_override, server_override, person.ospool)
+
+        server["kubespawner_override"] = composite_override
+        spawner.profile_list.append(server)
 
     return spawner._options_form_default()  # type: ignore[no-any-return]
 
