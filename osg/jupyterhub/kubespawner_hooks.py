@@ -9,13 +9,13 @@ the `Configuration` class.
 import copy
 import dataclasses
 import os
-from pathlib import Path
+import pathlib
 from typing import Any, Dict, Iterator, List, Optional
 
 import baydemir.parsing
 import kubernetes_asyncio.client as k8s  # type: ignore[import-untyped]
 
-from osg.jupyterhub_util import htcondor  # not to be confused with the Python bindings
+from osg.jupyterhub_util import htcondor  # not to be confused with HTCondor's Python bindings
 from osg.jupyterhub_util import comanage
 
 __all__ = [
@@ -24,7 +24,7 @@ __all__ = [
     "options_form",
 ]
 
-KUBESPAWNER_CONFIG = Path("/etc/osg/kubespawner_hooks_config.yaml")
+KUBESPAWNER_CONFIG = pathlib.Path("/etc/osg/kubespawner_hooks_config.yaml")
 
 CONDOR_CONDOR_HOST = os.environ.get("_condor_CONDOR_HOST")
 CONDOR_SEC_PASSWORD_FILE = os.environ.get("_condor_SEC_PASSWORD_FILE")
