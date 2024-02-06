@@ -8,7 +8,7 @@ requires = ["poetry-core>=1.0.0"]
 
 [tool.black]
 line-length = 96
-target-version = ["py38", "py39", "py310", "py311"]
+target-version = ["py39", "py310", "py311", "py312"]
 
 
 [tool.isort]
@@ -40,7 +40,7 @@ sqlite_cache = true
 
 [tool.poetry]
 name = "osg_jupyterhub_hooks"
-version = "6.0.4"
+version = "6.0.5"
 description = "KubeSpawner hooks for OSG's JupyterHub instance"
 license = "Apache-2.0"
 authors = ["Brian Aydemir <baydemir@morgridge.org>"]
@@ -50,7 +50,7 @@ packages = [{ include = "osg" }]
 
 [tool.poetry.dependencies]
 ## These dependencies are intended for jupyterhub/k8s-hub:2.0.0.
-python = ">=3.9,<3.12"
+python = "^3.9"
 cryptography = ">=41.0.6,<42"  # 38.0.1 -> 41.0.6 for security
 kubernetes-asyncio = "^26"
 PyJWT = "~2.8"  # 2.4+ for security and type annotations
@@ -62,13 +62,12 @@ baydemir = { git = "https://github.com/brianaydemir/pythonlib.git", tag = "1.0.1
 
 [tool.poetry.group.dev.dependencies]
 bandit = "~1.7"
-black = "~23.11"
+black = "~24.1"
 docutils = "~0.20"
-isort = "~5.12"
-mypy = "~1.7"
-pre-commit = "~3.5"
+isort = "~5.13"
+mypy = "~1.8"
+pre-commit = "~3.6"
 pylint = "~3.0"
-"ruamel.yaml.cmd" = "~0.6"
 safety = "~2.3"
 types-PyYAML = "~6.0"
 
