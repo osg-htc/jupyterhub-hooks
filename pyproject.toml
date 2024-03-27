@@ -64,12 +64,12 @@ baydemir = { git = "https://github.com/brianaydemir/pythonlib.git", tag = "1.0.1
 
 [tool.poetry.group.dev.dependencies]
 bandit = "~1.7"
-black = "~24.2"
+black = "~24.3"
 docutils = "~0.20"
 isort = "~5.13"
-mypy = "~1.8"
-pre-commit = "~3.6"
-pylint = "~3.0"
+mypy = "~1.9"
+pre-commit = "~3.7"
+pylint = "~3.1"
 types-PyYAML = "~6.0"
 
 
