@@ -40,7 +40,7 @@ sqlite_cache = true
 
 [tool.poetry]
 name = "osg_jupyterhub_hooks"
-version = "7.0.0"
+version = "7.1.1"
 description = "KubeSpawner hooks for OSG's JupyterHub instance"
 license = "Apache-2.0"
 authors = [
