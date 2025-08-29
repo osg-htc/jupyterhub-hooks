@@ -3,6 +3,7 @@ Query OSG's COmanage infrastructure.
 """
 
 import dataclasses
+import os
 from typing import Any, Dict, List, Optional
 
 __all__ = [
@@ -11,6 +12,9 @@ __all__ = [
     #
     "get_person",
 ]
+
+OIDC_SUB_CLAIM = os.environ.get("_osg_KUBESPAWNER_SUB_CLAIM", "sub")
+OIDC_GROUPS_CLAIM = os.environ.get("_osg_KUBESPAWNER_GROUPS_CLAIM", "groups")
 
 
 @dataclasses.dataclass
@@ -34,17 +38,18 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
 
     person = None
 
-    # NOTE: The OIDC Client in COmanage must be configured to return the
-    # claims below so that we can avoid querying LDAP, which will block the
-    # current thread when using the `ldap3` library.
+    # NOTE: The OIDC client must be configured to return the "unix" claims
+    # below so that we can avoid querying LDAP, which will block the current
+    # thread when using the `ldap3` library.
 
-    oidc_sub = oidc_userinfo.get("sub")
-    groups = oidc_userinfo.get("groups")
+    sub = oidc_userinfo.get(OIDC_SUB_CLAIM)
+    groups = oidc_userinfo.get(OIDC_GROUPS_CLAIM)
+
     username = oidc_userinfo.get("unix_username")
     uid = oidc_userinfo.get("unix_uid")
     gid = oidc_userinfo.get("unix_gid")
 
-    if oidc_sub and not person:
+    if sub and not person:
         if username and uid and gid:
             try:
                 ospool_person = OSPoolPerson(username, int(uid), int(gid))
@@ -52,6 +57,6 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
                 ospool_person = None
         else:
             ospool_person = None
-        person = COmanagePerson(oidc_sub, groups or [], ospool_person)
+        person = COmanagePerson(sub, groups or [], ospool_person)
 
     return person

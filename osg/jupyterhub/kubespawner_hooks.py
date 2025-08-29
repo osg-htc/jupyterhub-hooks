@@ -86,6 +86,8 @@ def auth_state_hook(spawner, auth_state) -> None:
     Saves the user's OIDC userinfo object to the spawner.
     """
 
+    spawner.log.info(f"Current auth state: {auth_state!r}")
+
     spawner.userdata = (auth_state or {}).get("cilogon_user", {})
 
 
