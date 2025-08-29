@@ -38,12 +38,12 @@ def get_person(oidc_userinfo: Dict[str, Any]) -> Optional[COmanagePerson]:
 
     person = None
 
+    sub = oidc_userinfo.get(OIDC_SUB_CLAIM)
+    groups = oidc_userinfo.get(OIDC_GROUPS_CLAIM)
+
     # NOTE: The OIDC client must be configured to return the "unix" claims
     # below so that we can avoid querying LDAP, which will block the current
     # thread when using the `ldap3` library.
-
-    sub = oidc_userinfo.get(OIDC_SUB_CLAIM)
-    groups = oidc_userinfo.get(OIDC_GROUPS_CLAIM)
 
     username = oidc_userinfo.get("unix_username")
     uid = oidc_userinfo.get("unix_uid")

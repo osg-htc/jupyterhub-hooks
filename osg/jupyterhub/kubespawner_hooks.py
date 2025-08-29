@@ -86,9 +86,22 @@ def auth_state_hook(spawner, auth_state) -> None:
     Saves the user's OIDC userinfo object to the spawner.
     """
 
-    spawner.log.info(f"Current auth state: {auth_state!r}")
+    spawner.userdata = {}
 
-    spawner.userdata = (auth_state or {}).get("cilogon_user", {})
+    current_state = auth_state or {}
+
+    for key in [
+        "bitbucket_user",
+        "cilogon_user",
+        "gitlab_user",
+        "oauth_user",
+        "openshift_user",
+    ]:
+        if key in current_state:
+            spawner.userdata = current_state.get(key, {})
+            break
+
+    spawner.log.info(f"Current userdata: {spawner.userdata!r}")
 
 
 def options_form(spawner) -> str:
