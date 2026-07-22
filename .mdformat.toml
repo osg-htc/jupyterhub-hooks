@@ -1,0 +1,10 @@
+# MD Format (https://mdformat.rtfd.io)
+
+# Encourage semantic line breaks (https://sembr.org)
+wrap = "keep"
+
+# Standardize on UNIX line-endings
+end_of_line = "lf"
+
+# Favor readability over accommodating low-quality diff algorithms
+number = true

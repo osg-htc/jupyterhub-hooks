@@ -8,7 +8,6 @@ import itertools
 import os
 import time
 import uuid
-from typing import Union
 
 import jwt
 from cryptography.hazmat.primitives.hashes import SHA256
@@ -20,7 +19,7 @@ __all__ = [
 ]
 
 
-def unscramble(buf: bytes) -> bytes:
+def _unscramble(buf: bytes) -> bytes:
     """
     Undoes HTCondor's password scrambling.
     """
@@ -30,14 +29,22 @@ def unscramble(buf: bytes) -> bytes:
     return bytes(a ^ b for (a, b) in zip(buf, itertools.cycle(deadbeef)))
 
 
-def read_password(path: Union[str, os.PathLike]) -> bytes:
+def read_password(path: str | os.PathLike[str]) -> bytes:
+    """
+    Reads and unscrambles an HTCondor password file.
+    """
+
     with open(path, mode="rb") as fp:
         raw_password = fp.read()
-    return unscramble(raw_password)
+    return _unscramble(raw_password)
 
 
-def derive_key(password: bytes) -> bytes:
-    ## The parameters to HKDF are fixed as part of the protocol.
+def _derive_key(password: bytes) -> bytes:
+    """
+    Derives the signing key for an HTCondor IDTOKEN from a password.
+    """
+
+    # The parameters to HKDF are fixed as part of the protocol.
     hkdf = HKDF(
         algorithm=SHA256(),
         length=32,
@@ -71,6 +78,10 @@ def create_token(
         "scope": scope,
     }
 
+    # HTCondor derives the signing key for the "POOL" key ID from the
+    # password repeated twice, so we must match that here or every minted
+    # IDTOKEN would be rejected.
+
     if kid == "POOL":
         password += password
 
@@ -78,7 +89,7 @@ def create_token(
     # API will accept `bytes` because that's what it actually needs for the
     # HMAC algorithm.
 
-    key = derive_key(password)
+    key = _derive_key(password)
 
     token = jwt.encode(payload, key, headers={"kid": kid}, algorithm="HS256")
 

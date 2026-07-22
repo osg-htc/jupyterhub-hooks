@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Enter access code</title>
+  </head>
+  <body>
+    <h1>Enter your access code</h1>
+    {% if error %}
+    <p style="color:#b00">{{ error }}</p>
+    {% end %}
+    <form method="post">
+      {% raw xsrf_form_html() %}
+      <input type="text" name="code" autocomplete="off" autofocus required>
+      <button type="submit">Submit</button>
+    </form>
+  </body>
+</html>

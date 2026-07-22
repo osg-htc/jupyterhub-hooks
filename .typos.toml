@@ -1,0 +1,7 @@
+# Typos (https://github.com/crate-ci/typos)
+
+[default]
+extend-ignore-words-re = [
+    # Two- and three-letter "words" are common in code
+    "^[[:alpha:]]{2,3}$",
+]

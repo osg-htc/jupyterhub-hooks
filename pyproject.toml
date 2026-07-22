@@ -1,14 +1,25 @@
-## Project requirements (PEP 518, https://python-poetry.org/).
+# Project requirements (PEP 518, https://python-poetry.org)
 
+
+[project]
+name = "osg_jupyterhub_hooks"
+version = "7.2.0"
+description = "KubeSpawner hooks for OSG's JupyterHub instance"
+license = "Apache-2.0"
+authors = [{ name = "Brian Aydemir", email = "baydemir@morgridge.org" }]
+
+
+[project.urls]
+repository = "https://github.com/osg-htc/jupyterhub-hooks"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 
 
 [tool.black]
 line-length = 96
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py312", "py313", "py314"]
 
 
 [tool.isort]
@@ -17,62 +28,89 @@ profile = "black"
 
 
 [tool.mypy]
+# Reference: https://mypy.readthedocs.io/en/stable/config_file.html
+
+# Import discovery
 explicit_package_bases = true
-namespace_packages = true
+follow_untyped_imports = true
 
+# Untyped definitions and calls
 check_untyped_defs = true
-strict_optional = true
-no_implicit_optional = true
 
-warn_no_return = true
+# Configuring warnings
 warn_redundant_casts = true
-warn_return_any = true
 warn_unreachable = true
 warn_unused_ignores = true
 
-color_output = false
+# Configuring error messages
 pretty = true
-show_error_codes = true
 
-incremental = true
+# Incremental mode
 sqlite_cache = true
 
 
 [tool.poetry]
-name = "osg_jupyterhub_hooks"
-version = "7.1.1"
-description = "KubeSpawner hooks for OSG's JupyterHub instance"
-license = "Apache-2.0"
-authors = [
-    "Brian Aydemir <baydemir@morgridge.org>",
-]
-repository = "https://github.com/osg-htc/jupyterhub-hooks"
+package-mode = true
 packages = [{ include = "osg" }]
 
 
 [tool.poetry.dependencies]
-## These dependencies are intended for quay.io/jupyterhub/k8s-hub:3.3.7.
-python = "^3.11"
+# These dependencies are intended for quay.io/jupyterhub/k8s-hub:4.2.0.
+python = "^3.12"
 cryptography = "^42"
+jupyterhub = "^5.3"
 kubernetes-asyncio = "^29"
 PyJWT = "~2.8"
 PyYAML = "~6.0"
+tornado = "^6.4"
+typing-extensions = "^4"
 
 ## Other dependencies.
 baydemir = { git = "https://github.com/brianaydemir/pythonlib.git", tag = "1.0.1" }
 
 
 [tool.poetry.group.dev.dependencies]
-bandit = "~1.7"
-black = "~24.4"
-docutils = "~0.21"
-isort = "~5.13"
-mypy = "~1.10"
-pre-commit = "~3.7"
-pylint = "~3.2"
+bandit = "~1.9"
+black = "~26.5"
+isort = "~8.0"
+mdformat = "~1.0"
+mdformat-gfm = "~1.0"
+mdformat-gfm-alerts = "~2.0"
+mypy = "~2.3"
+pre-commit = "~4.6"
+pylint = "~4.0"
+pyright = "~1.1"
 types-PyYAML = "~6.0"
+typos = "~1.48"
+
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.0.0"
+
+
+[tool.pyright]
+typeCheckingMode = "strict"
+
+# Be more forgiving.
+reportMissingTypeStubs = "none"
+
+# Be less forgiving.
+deprecateTypingAliases = true
+reportImplicitOverride = true
+reportImplicitStringConcatenation = true
+reportPropertyTypeMismatch = true
+reportUnnecessaryTypeIgnoreComment = true
+reportUnreachable = true
 
 
 [tool.pylint.messages-control]
 max-line-length = 96
-disable = "invalid-name,missing-class-docstring,missing-function-docstring"
+enable = [
+    "useless-suppression",
+]
+disable = [
+    "duplicate-code",
+    "line-too-long",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+]
